@@ -62,13 +62,11 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
-const BOARD_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/3/3f/Chessboard480.svg";
+const WOOD_LIGHT = "#dcc4a1";
+const WOOD_DARK = "#7a5a37";
 const PANEL = "#ffffff";
 const PANEL_2 = "#f7f3ed";
 const ACCENT = "#c08457";
-const PAGE_BG = "#faf7f2";
-const TEXT = "#2d2a26";
-const BORDER = "#e7ded2";
 
 const other = (c: Color): Color => (c === "white" ? "black" : "white");
 const keyOf = (f: number, r: number) => `${FILES[f]}${r}` as Square;
@@ -117,10 +115,30 @@ function createInitialBoard() {
 
   const back: PieceType[] = ["R", "N", "B", "Q", "K", "B", "N", "R"];
   for (let i = 0; i < 8; i++) {
-    board[`${FILES[i]}1` as Square] = { id: `w-${back[i]}-${i}`, type: back[i], color: "white", moved: false };
-    board[`${FILES[i]}2` as Square] = { id: `w-P-${i}`, type: "P", color: "white", moved: false };
-    board[`${FILES[i]}8` as Square] = { id: `b-${back[i]}-${i}`, type: back[i], color: "black", moved: false };
-    board[`${FILES[i]}7` as Square] = { id: `b-P-${i}`, type: "P", color: "black", moved: false };
+    board[`${FILES[i]}1` as Square] = {
+      id: `w-${back[i]}-${i}`,
+      type: back[i],
+      color: "white",
+      moved: false,
+    };
+    board[`${FILES[i]}2` as Square] = {
+      id: `w-P-${i}`,
+      type: "P",
+      color: "white",
+      moved: false,
+    };
+    board[`${FILES[i]}8` as Square] = {
+      id: `b-${back[i]}-${i}`,
+      type: back[i],
+      color: "black",
+      moved: false,
+    };
+    board[`${FILES[i]}7` as Square] = {
+      id: `b-P-${i}`,
+      type: "P",
+      color: "black",
+      moved: false,
+    };
   }
 
   return board;
@@ -173,7 +191,11 @@ function initialState(): State {
 }
 
 function findKing(board: Record<Square, Piece | null>, color: Color) {
-  return (Object.keys(board) as Square[]).find((sq) => board[sq]?.type === "K" && board[sq]?.color === color) || null;
+  return (
+    (Object.keys(board) as Square[]).find(
+      (sq) => board[sq]?.type === "K" && board[sq]?.color === color,
+    ) || null
+  );
 }
 
 function getCastlingRookSquares(color: Color, side: "king" | "queen") {
@@ -192,7 +214,13 @@ function maybePromotion(piece: Piece, to: Square) {
   return piece.type === "P" && ((piece.color === "white" && rank === 8) || (piece.color === "black" && rank === 1));
 }
 
-function rayMoves(board: Record<Square, Piece | null>, from: Square, color: Color, dirs: number[][], allowSelf: boolean) {
+function rayMoves(
+  board: Record<Square, Piece | null>,
+  from: Square,
+  color: Color,
+  dirs: number[][],
+  allowSelf: boolean,
+) {
   const { f, r } = coords(from);
   const out: Move[] = [];
 
@@ -203,13 +231,17 @@ function rayMoves(board: Record<Square, Piece | null>, from: Square, color: Colo
     while (inBounds(nf, nr)) {
       const to = keyOf(nf, nr);
       const hit = board[to];
+
       if (!hit) {
         out.push({ from, to, kind: "move" });
       } else {
         if (hit.color !== color) out.push({ from, to, kind: "move" });
-        else if (allowSelf && hit.type !== "Q" && hit.type !== "K") out.push({ from, to, kind: "selfCapture" });
+        else if (allowSelf && hit.type !== "Q" && hit.type !== "K") {
+          out.push({ from, to, kind: "selfCapture" });
+        }
         break;
       }
+
       nf += df;
       nr += dr;
     }
@@ -218,13 +250,19 @@ function rayMoves(board: Record<Square, Piece | null>, from: Square, color: Colo
   return out;
 }
 
-function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnly = false) {
+function pseudoMoves(
+  state: State,
+  color: Color,
+  allowSelf = false,
+  forAttackOnly = false,
+) {
   const board = state.board;
   const out: Move[] = [];
 
   for (const sq of Object.keys(board) as Square[]) {
     const p = board[sq];
     if (!p || p.color !== color) continue;
+
     const { f, r } = coords(sq);
 
     if (p.type === "P") {
@@ -251,14 +289,17 @@ function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnl
           out.push({ from: sq, to, kind: "move" });
           continue;
         }
+
         if (hit && hit.color !== color) {
           out.push({ from: sq, to, kind: "move" });
           continue;
         }
+
         if (allowSelf && hit && hit.color === color && hit.type !== "Q" && hit.type !== "K") {
           out.push({ from: sq, to, kind: "selfCapture" });
           continue;
         }
+
         if (!hit && state.enPassantTarget === to) {
           const capturedSq = keyOf(nf, r);
           const captured = board[capturedSq];
@@ -271,7 +312,16 @@ function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnl
     }
 
     if (p.type === "N") {
-      const jumps = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
+      const jumps = [
+        [1, 2],
+        [2, 1],
+        [-1, 2],
+        [-2, 1],
+        [1, -2],
+        [2, -1],
+        [-1, -2],
+        [-2, -1],
+      ];
       for (const [df, dr] of jumps) {
         const nf = f + df;
         const nr = r + dr;
@@ -285,15 +335,60 @@ function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnl
     }
 
     if (p.type === "B") {
-      out.push(...rayMoves(board, sq, color, [[1, 1], [-1, 1], [1, -1], [-1, -1]], allowSelf));
+      out.push(
+        ...rayMoves(
+          board,
+          sq,
+          color,
+          [
+            [1, 1],
+            [-1, 1],
+            [1, -1],
+            [-1, -1],
+          ],
+          allowSelf,
+        ),
+      );
       continue;
     }
+
     if (p.type === "R") {
-      out.push(...rayMoves(board, sq, color, [[1, 0], [-1, 0], [0, 1], [0, -1]], allowSelf));
+      out.push(
+        ...rayMoves(
+          board,
+          sq,
+          color,
+          [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ],
+          allowSelf,
+        ),
+      );
       continue;
     }
+
     if (p.type === "Q") {
-      out.push(...rayMoves(board, sq, color, [[1, 1], [-1, 1], [1, -1], [-1, -1], [1, 0], [-1, 0], [0, 1], [0, -1]], allowSelf));
+      out.push(
+        ...rayMoves(
+          board,
+          sq,
+          color,
+          [
+            [1, 1],
+            [-1, 1],
+            [1, -1],
+            [-1, -1],
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ],
+          allowSelf,
+        ),
+      );
       continue;
     }
 
@@ -343,7 +438,8 @@ function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnl
 }
 
 function squareAttacked(state: State, target: Square, by: Color) {
-  return pseudoMoves(state, by, false, true).some((m) => m.to === target);
+  const attacks = pseudoMoves(state, by, false, true);
+  return attacks.some((m) => m.to === target);
 }
 
 function simulateMoveNoFinalize(state: State, move: Move): State {
@@ -373,7 +469,8 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
   }
 
   const piece = next.board[move.from];
-  if (!piece || piece.color !== state.turn || !move.to) return next;
+  if (!piece || piece.color !== state.turn) return next;
+  if (!move.to) return next;
 
   const fromCoords = coords(move.from);
   const toCoords = coords(move.to);
@@ -421,19 +518,29 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
 
   if (maybePromotion(movedPiece, move.to)) {
     if (move.promotion) {
-      next.board[move.to] = { ...movedPiece, type: move.promotion, promotedFromPawn: true };
+      next.board[move.to] = {
+        ...movedPiece,
+        type: move.promotion,
+        promotedFromPawn: true,
+      };
       next.status = `${state.turn} promoted on ${move.to}.`;
       next.turn = other(state.turn);
       return next;
     }
 
-    next.pendingPromotion = { square: move.to, color: movedPiece.color, moveBase: { ...move } };
+    next.pendingPromotion = {
+      square: move.to,
+      color: movedPiece.color,
+      moveBase: { ...move },
+    };
     next.status = `${state.turn} must choose a promotion piece.`;
     return next;
   }
 
   next.turn = other(state.turn);
-  if (!next.status) next.status = `${state.turn} moved ${piece.type.toLowerCase()} from ${move.from} to ${move.to}.`;
+  if (!next.status) {
+    next.status = `${state.turn} moved ${piece.type.toLowerCase()} from ${move.from} to ${move.to}.`;
+  }
   return next;
 }
 
@@ -444,22 +551,28 @@ function legalMoves(state: State, color: Color): Move[] {
 
   for (const move of candidates) {
     if (!move.to) continue;
+
     const piece = state.board[move.from];
     if (!piece) continue;
 
-    const variants = maybePromotion(piece, move.to)
+    const candidateVariants: Move[] = maybePromotion(piece, move.to)
       ? PROMOTION_TYPES.map((promotion) => ({ ...move, promotion }))
       : [move];
 
-    for (const variant of variants) {
+    for (const variant of candidateVariants) {
       const next = simulateMoveNoFinalize({ ...state, turn: color }, variant);
       const kingSq = findKing(next.board, color);
       if (!kingSq) continue;
-      if (!squareAttacked(next, kingSq, other(color))) legal.push(variant);
+      if (!squareAttacked(next, kingSq, other(color))) {
+        legal.push(variant);
+      }
     }
   }
 
-  if (!state.secrets[color].revealed) legal.push({ from: "a1", kind: "reveal" });
+  if (!state.secrets[color].revealed) {
+    legal.push({ from: "a1", kind: "reveal" });
+  }
+
   return legal;
 }
 
@@ -468,23 +581,56 @@ function computeTerminalState(state: State): Pick<State, "winner" | "result" | "
   const currentKing = findKing(state.board, current);
   const enemyKing = findKing(state.board, other(current));
 
-  if (!currentKing) return { winner: other(current), result: `${other(current)} wins.`, status: `${state.status} ${other(current)} wins.`.trim() };
-  if (!enemyKing) return { winner: current, result: `${current} wins.`, status: `${state.status} ${current} wins.`.trim() };
+  if (!currentKing) {
+    return {
+      winner: other(current),
+      result: `${other(current)} wins.`,
+      status: `${state.status} ${other(current)} wins.`.trim(),
+    };
+  }
+
+  if (!enemyKing) {
+    return {
+      winner: current,
+      result: `${current} wins.`,
+      status: `${state.status} ${current} wins.`.trim(),
+    };
+  }
 
   const nextLegal = legalMoves({ ...state, selected: null }, current);
   const inCheck = squareAttacked(state, currentKing, other(current));
 
   if (nextLegal.length === 0) {
-    if (inCheck) return { winner: other(current), result: `${other(current)} wins by checkmate.`, status: `${state.status} Checkmate.`.trim() };
-    return { winner: null, result: "Draw by stalemate.", status: `${state.status} Stalemate.`.trim() };
+    if (inCheck) {
+      return {
+        winner: other(current),
+        result: `${other(current)} wins by checkmate.`,
+        status: `${state.status} Checkmate.`.trim(),
+      };
+    }
+
+    return {
+      winner: null,
+      result: "Draw by stalemate.",
+      status: `${state.status} Stalemate.`.trim(),
+    };
   }
 
-  return { winner: null, result: null, status: inCheck ? `${state.status} ${current} is in check.`.trim() : state.status };
+  return {
+    winner: null,
+    result: null,
+    status: inCheck ? `${state.status} ${current} is in check.`.trim() : state.status,
+  };
 }
 
 function finalizeState(state: State): State {
   const terminal = computeTerminalState(state);
-  return { ...state, winner: terminal.winner, result: terminal.result, status: terminal.status };
+  return {
+    ...state,
+    winner: terminal.winner,
+    result: terminal.result,
+    status: terminal.status,
+  };
 }
 
 function applyMove(state: State, move: Move): State {
@@ -503,6 +649,7 @@ function evaluate(state: State, forColor: Color) {
   }
 
   let score = 0;
+
   for (const sq of Object.keys(state.board) as Square[]) {
     const p = state.board[sq];
     if (!p) continue;
@@ -512,8 +659,10 @@ function evaluate(state: State, forColor: Color) {
     score += (p.color === forColor ? 1 : -1) * center * 3;
     if (p.promotedFromPawn) score += p.color === forColor ? 30 : -30;
   }
+
   if (!state.secrets[forColor].revealed) score += 20;
   if (!state.secrets[other(forColor)].revealed) score -= 20;
+
   return score;
 }
 
@@ -531,6 +680,7 @@ function moveHeuristic(state: State, move: Move, color: Color) {
   const enemyKing = findKing(next.board, other(color));
   if (enemyKing && squareAttacked(next, enemyKing, color)) score += 60;
   if (move.promotion) score += pieceValue(move.promotion);
+
   return score;
 }
 
@@ -543,7 +693,10 @@ function minimax(state: State, depth: number, alpha: number, beta: number, maxim
 
   const side = maximizing ? root : other(root);
   let moves = legalMoves({ ...state, turn: side }, side);
-  if (!moves.length) return evaluate(finalizeState({ ...state, turn: side }), root);
+  if (!moves.length) {
+    return evaluate(finalizeState({ ...state, turn: side }), root);
+  }
+
   moves = orderMoves({ ...state, turn: side }, moves, side);
 
   if (maximizing) {
@@ -572,10 +725,14 @@ function minimax(state: State, depth: number, alpha: number, beta: number, maxim
 function pickCpuMove(state: State) {
   const color = state.cpuColor;
   let moves = legalMoves({ ...state, turn: color }, color);
+
   if (!moves.length) return finalizeState({ ...state, turn: color });
   moves = orderMoves({ ...state, turn: color }, moves, color);
 
-  if (state.difficulty === "Easy") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
+  if (state.difficulty === "Easy") {
+    return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
+  }
+
   if (state.difficulty === "Medium") {
     const captures = moves.filter((m) => m.to && (state.board[m.to] || state.enPassantTarget === m.to));
     return applyMove(state, captures[0] || moves[0]);
@@ -608,7 +765,6 @@ function runSelfTests() {
   const board = createInitialBoard();
   assert(Object.keys(board).length === 64, "board has 64 squares");
   assert(board["e1"]?.type === "K" && board["e8"]?.type === "K", "kings are placed correctly");
-  assert(BOARD_IMAGE.includes("wikimedia") || BOARD_IMAGE.startsWith("data:"), "board image configured");
 
   const secrets = createSecrets(board);
   assert(!!secrets.white.pieceId && !!secrets.black.pieceId, "secrets are generated");
@@ -656,7 +812,8 @@ function runSelfTests() {
     difficulty: "Easy",
     lastMove: null,
   };
-  assert(legalMoves(selfCapState, "white").some((m) => m.kind === "selfCapture" && m.from === "a1" && m.to === "a3"), "self-capture is generated while allowed");
+  const selfCapMoves = legalMoves(selfCapState, "white");
+  assert(selfCapMoves.some((m) => m.kind === "selfCapture" && m.from === "a1" && m.to === "a3"), "self-capture is generated while allowed");
 
   const promoBoard = {} as Record<Square, Piece | null>;
   for (const file of FILES) for (const rank of RANKS_ASC) promoBoard[`${file}${rank}` as Square] = null;
@@ -664,12 +821,35 @@ function runSelfTests() {
   promoBoard["e8"] = { id: "bk2", type: "K", color: "black", moved: false };
   promoBoard["a7"] = { id: "wpromo", type: "P", color: "white", moved: true };
   const promoState: State = {
-    ...initialState(), board: promoBoard, turn: "white", quietus: { white: [], black: [] },
+    ...initialState(),
+    board: promoBoard,
+    turn: "white",
+    quietus: { white: [], black: [] },
     secrets: { white: { pieceId: "bk2", revealed: false }, black: { pieceId: "wpromo", revealed: false } },
-    peek: "none", pendingPromotion: null, enPassantTarget: null, winner: null, result: null,
-    status: "", selected: null, showRules: false, mode: "human", cpuColor: "black", difficulty: "Easy", lastMove: null,
+    peek: "none",
+    pendingPromotion: null,
+    enPassantTarget: null,
+    winner: null,
+    result: null,
+    status: "",
+    selected: null,
+    showRules: false,
+    mode: "human",
+    cpuColor: "black",
+    difficulty: "Easy",
+    lastMove: null,
   };
-  assert(legalMoves(promoState, "white").some((m) => m.to === "a8" && m.promotion === "Q"), "promotion variants are generated");
+  const promoMoves = legalMoves(promoState, "white");
+  assert(promoMoves.some((m) => m.to === "a8" && m.promotion === "Q"), "promotion variants are generated");
+
+  const noRecursionState = applyMove(start, whiteLegal.find((m) => m.kind !== "reveal") || { from: "a1", kind: "reveal" });
+  assert(typeof noRecursionState.status === "string", "applyMove returns without recursive overflow");
+
+  const normalFiles = FILES.join("");
+  const flippedFiles = [...FILES].reverse().join("");
+  assert(normalFiles === "abcdefgh", "normal file labels are ordered left to right");
+  assert(flippedFiles === "hgfedcba", "flipped file labels reverse correctly");
+  assert(RANKS_DESC.join("") === "87654321", "rank labels are ordered top to bottom");
 
   const castleBoard = {} as Record<Square, Piece | null>;
   for (const file of FILES) for (const rank of RANKS_ASC) castleBoard[`${file}${rank}` as Square] = null;
@@ -677,12 +857,28 @@ function runSelfTests() {
   castleBoard["h1"] = { id: "wr4", type: "R", color: "white", moved: false };
   castleBoard["e8"] = { id: "bk4", type: "K", color: "black", moved: false };
   const castleState: State = {
-    ...initialState(), board: castleBoard, turn: "white", quietus: { white: [], black: [] },
+    ...initialState(),
+    board: castleBoard,
+    turn: "white",
+    quietus: { white: [], black: [] },
     secrets: { white: { pieceId: "bk4", revealed: false }, black: { pieceId: "wr4", revealed: false } },
-    peek: "none", pendingPromotion: null, enPassantTarget: null, winner: null, result: null,
-    status: "", selected: null, showRules: false, mode: "human", cpuColor: "black", difficulty: "Easy", lastMove: null,
+    peek: "none",
+    pendingPromotion: null,
+    enPassantTarget: null,
+    winner: null,
+    result: null,
+    status: "",
+    selected: null,
+    showRules: false,
+    mode: "human",
+    cpuColor: "black",
+    difficulty: "Easy",
+    lastMove: null,
   };
-  assert(legalMoves(castleState, "white").some((m) => m.from === "e1" && m.to === "g1"), "kingside castling is generated");
+  const castleMoves = legalMoves(castleState, "white");
+  assert(castleMoves.some((m) => m.from === "e1" && m.to === "g1"), "kingside castling is generated");
+  const castled = applyMove(castleState, { from: "e1", to: "g1", kind: "move" });
+  assert(castled.board["g1"]?.type === "K" && castled.board["f1"]?.type === "R", "castling repositions king and rook");
 
   const epBoard = {} as Record<Square, Piece | null>;
   for (const file of FILES) for (const rank of RANKS_ASC) epBoard[`${file}${rank}` as Square] = null;
@@ -691,14 +887,60 @@ function runSelfTests() {
   epBoard["e5"] = { id: "wp5", type: "P", color: "white", moved: true };
   epBoard["d7"] = { id: "bp5", type: "P", color: "black", moved: false };
   const epStart: State = {
-    ...initialState(), board: epBoard, turn: "black", quietus: { white: [], black: [] },
+    ...initialState(),
+    board: epBoard,
+    turn: "black",
+    quietus: { white: [], black: [] },
     secrets: { white: { pieceId: "bp5", revealed: false }, black: { pieceId: "wp5", revealed: false } },
-    peek: "none", pendingPromotion: null, enPassantTarget: null, winner: null, result: null,
-    status: "", selected: null, showRules: false, mode: "human", cpuColor: "black", difficulty: "Easy", lastMove: null,
+    peek: "none",
+    pendingPromotion: null,
+    enPassantTarget: null,
+    winner: null,
+    result: null,
+    status: "",
+    selected: null,
+    showRules: false,
+    mode: "human",
+    cpuColor: "black",
+    difficulty: "Easy",
+    lastMove: null,
   };
   const epMid = applyMove(epStart, { from: "d7", to: "d5", kind: "move" });
   assert(epMid.enPassantTarget === "d6", "double pawn move sets en passant target");
-  assert(legalMoves(epMid, "white").some((m) => m.from === "e5" && m.to === "d6"), "en passant move is generated");
+  const epMoves = legalMoves(epMid, "white");
+  assert(epMoves.some((m) => m.from === "e5" && m.to === "d6"), "en passant move is generated");
+  const epDone = applyMove(epMid, { from: "e5", to: "d6", kind: "move" });
+  assert(!epDone.board["d5"] && epDone.board["d6"]?.color === "white", "en passant removes captured pawn");
+
+  const epExpiryBoard = {} as Record<Square, Piece | null>;
+  for (const file of FILES) for (const rank of RANKS_ASC) epExpiryBoard[`${file}${rank}` as Square] = null;
+  epExpiryBoard["e1"] = { id: "wk6", type: "K", color: "white", moved: false };
+  epExpiryBoard["e8"] = { id: "bk6", type: "K", color: "black", moved: false };
+  epExpiryBoard["e5"] = { id: "wp6", type: "P", color: "white", moved: true };
+  epExpiryBoard["d7"] = { id: "bp6", type: "P", color: "black", moved: false };
+  epExpiryBoard["a1"] = { id: "wr6", type: "R", color: "white", moved: false };
+  const epExpiryStart: State = {
+    ...initialState(),
+    board: epExpiryBoard,
+    turn: "black",
+    quietus: { white: [], black: [] },
+    secrets: { white: { pieceId: "bp6", revealed: false }, black: { pieceId: "wp6", revealed: false } },
+    peek: "none",
+    pendingPromotion: null,
+    enPassantTarget: null,
+    winner: null,
+    result: null,
+    status: "",
+    selected: null,
+    showRules: false,
+    mode: "human",
+    cpuColor: "black",
+    difficulty: "Easy",
+    lastMove: null,
+  };
+  const epExpiryMid = applyMove(epExpiryStart, { from: "d7", to: "d5", kind: "move" });
+  const epExpiryAfterWaiting = applyMove({ ...epExpiryMid, turn: "white" }, { from: "a1", to: "a2", kind: "move" });
+  assert(epExpiryAfterWaiting.enPassantTarget === null, "en passant expires after one turn if unused");
 }
 
 function SquareView({
@@ -723,6 +965,7 @@ function SquareView({
   flipped: boolean;
 }) {
   const { f, r } = coords(sq);
+  const isDark = (f + r) % 2 === 0;
   const border = selected
     ? "0 0 0 3px rgba(131,178,190,.95) inset"
     : highlight === "from"
@@ -730,9 +973,6 @@ function SquareView({
       : highlight === "to"
         ? "0 0 0 3px rgba(74,222,128,.75) inset"
         : "none";
-
-  const textureX = `${(f * 100) / 7}%`;
-  const textureY = `${((8 - r) * 100) / 7}%`;
 
   return (
     <button
@@ -743,9 +983,9 @@ function SquareView({
       onDragOver={onDragOver}
       className="relative aspect-square flex items-center justify-center select-none"
       style={{
-        backgroundImage: `url(${BOARD_IMAGE})`,
-        backgroundSize: "800% 800%",
-        backgroundPosition: `${textureX} ${textureY}`,
+        background: isDark
+          ? `linear-gradient(135deg, ${WOOD_DARK} 0%, #6b4d2f 100%)`
+          : `linear-gradient(135deg, #ead8bb 0%, ${WOOD_LIGHT} 100%)`,
         boxShadow: border,
       }}
     >
@@ -768,10 +1008,14 @@ function SquareView({
 
 function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
   return (
-    <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: BORDER }}>
+    <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: "#3a3a3a" }}>
       <div className="text-sm font-semibold mb-2">{title}</div>
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
-        {pieces.length ? pieces.map((p, i) => <span key={`${p.id}-${i}`}>{GLYPHS[p.color][p.type]}</span>) : <span className="text-sm opacity-60">—</span>}
+        {pieces.length ? (
+          pieces.map((p, i) => <span key={`${p.id}-${i}`}>{GLYPHS[p.color][p.type]}</span>)
+        ) : (
+          <span className="text-sm opacity-60">—</span>
+        )}
       </div>
     </div>
   );
@@ -793,6 +1037,8 @@ export default function App() {
 
   const boardOrderRanks = state.flipped ? [...RANKS_ASC] : RANKS_DESC;
   const boardOrderFiles = state.flipped ? [...FILES].reverse() : FILES;
+  const fileLabels = boardOrderFiles;
+  const rankLabels = boardOrderRanks;
   const selectedPiece = state.selected ? state.board[state.selected] : null;
   const canReveal = !state.winner && !state.pendingPromotion && !state.secrets[state.turn].revealed;
 
@@ -800,7 +1046,13 @@ export default function App() {
     if (state.peek === "none") return null;
     const secret = state.secrets[state.peek];
     const hostSq = (Object.keys(state.board) as Square[]).find((sq) => state.board[sq]?.id === secret.pieceId) || null;
-    return { viewer: state.peek, target: other(state.peek), secret, hostSq, piece: hostSq ? state.board[hostSq] : null };
+    return {
+      viewer: state.peek,
+      target: other(state.peek),
+      secret,
+      hostSq,
+      piece: hostSq ? state.board[hostSq] : null,
+    };
   }, [state.peek, state.secrets, state.board]);
 
   useEffect(() => {
@@ -810,25 +1062,36 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [state.turn, state.mode, state.cpuColor, state.difficulty, state.pendingPromotion, state.winner, state.result]);
 
-  function reset() { setState(initialState()); }
+  function reset() {
+    setState(initialState());
+  }
 
   function handleClick(sq: Square) {
     if (state.winner || state.pendingPromotion) return;
     if (state.mode === "cpu" && state.turn === state.cpuColor) return;
+
     if (!state.selected) {
-      if (state.board[sq]?.color === state.turn) setState((s) => ({ ...s, selected: sq }));
+      if (state.board[sq]?.color === state.turn) {
+        setState((s) => ({ ...s, selected: sq }));
+      }
       return;
     }
+
     if (state.selected === sq) {
       setState((s) => ({ ...s, selected: null }));
       return;
     }
+
     if (state.board[sq]?.color === state.turn) {
       setState((s) => ({ ...s, selected: sq }));
       return;
     }
 
-    const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq);
+    const allMoves = legalMoves(state, state.turn);
+    const moves = allMoves.filter(
+      (m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq,
+    );
+
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn && state.secrets[other(state.turn)].revealed) {
         setState((s) => ({ ...s, status: "You can no longer capture your own pieces after your fifth column has been revealed." }));
@@ -839,7 +1102,11 @@ export default function App() {
   }
 
   function handleDragStart(e: React.DragEvent<HTMLButtonElement>, sq: Square) {
-    if (state.winner || state.pendingPromotion || (state.mode === "cpu" && state.turn === state.cpuColor)) {
+    if (state.winner || state.pendingPromotion) {
+      e.preventDefault();
+      return;
+    }
+    if (state.mode === "cpu" && state.turn === state.cpuColor) {
       e.preventDefault();
       return;
     }
@@ -854,11 +1121,17 @@ export default function App() {
 
   function handleDrop(e: React.DragEvent<HTMLButtonElement>, sq: Square) {
     e.preventDefault();
-    if (state.winner || state.pendingPromotion || (state.mode === "cpu" && state.turn === state.cpuColor)) return;
+    if (state.winner || state.pendingPromotion) return;
+    if (state.mode === "cpu" && state.turn === state.cpuColor) return;
+
     const from = e.dataTransfer.getData("text/plain") as Square;
     if (!from) return;
 
-    const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === from && m.to === sq);
+    const allMoves = legalMoves(state, state.turn);
+    const moves = allMoves.filter(
+      (m) => m.kind !== "reveal" && m.from === from && m.to === sq,
+    );
+
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn) {
         if (state.secrets[other(state.turn)].revealed) {
@@ -869,101 +1142,184 @@ export default function App() {
       }
       return;
     }
+
     setState((s) => applyMove(s, moves[0]));
   }
 
-  function handleDragOver(e: React.DragEvent<HTMLButtonElement>) { e.preventDefault(); }
-  function handleReveal() { if (canReveal) setState((s) => applyMove(s, { from: "a1", kind: "reveal" })); }
+  function handleDragOver(e: React.DragEvent<HTMLButtonElement>) {
+    e.preventDefault();
+  }
+
+  function handleReveal() {
+    if (!canReveal) return;
+    setState((s) => applyMove(s, { from: "a1", kind: "reveal" }));
+  }
+
   function handlePromotion(type: Exclude<PieceType, "K" | "P">) {
     if (!state.pendingPromotion) return;
-    setState((s) => applyMove({ ...s, pendingPromotion: null }, { ...s.pendingPromotion!.moveBase, promotion: type }));
+    setState((s) => {
+      const move = { ...s.pendingPromotion!.moveBase, promotion: type };
+      return applyMove({ ...s, pendingPromotion: null }, move);
+    });
   }
 
   const thinking = state.mode === "cpu" && state.turn === state.cpuColor && !state.pendingPromotion && !state.winner;
 
   return (
-    <div className="min-h-screen" style={{ background: PAGE_BG, color: TEXT }}>
+    <div className="min-h-screen text-[#2d2a26]" style={{ background: "#faf7f2" }}>
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(520px,1fr)_280px] gap-4">
           <div className="space-y-4">
-            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
               <div className="text-xl font-semibold mb-3">Fifth Column Chess</div>
               <div className="flex flex-wrap gap-2">
-                <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: "#efe7dc", color: TEXT }}>New Game</button>
-                <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2, color: TEXT }}>Flip Board</button>
-                <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>Rules & Info</button>
+                <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold text-black" style={{ background: "#efe7dc", color: "#2d2a26" }}>
+                  New Game
+                </button>
+                <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
+                  Flip Board
+                </button>
+                <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-4 py-2 rounded-2xl font-semibold text-black" style={{ background: ACCENT }}>
+                  Rules & Info
+                </button>
               </div>
-              <div className="mt-4 text-sm opacity-80">Turn: <span className="font-semibold capitalize">{state.turn}</span></div>
-              <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: PANEL_2, borderColor: BORDER, color: TEXT }}>{state.result || state.status}</div>
-              <div className="mt-2 text-xs opacity-60">Tests: {testsPassed === null ? "running…" : testsPassed ? "passed" : "failed — check console"}</div>
+              <div className="mt-4 text-sm opacity-80">
+                Turn: <span className="font-semibold capitalize">{state.turn}</span>
+              </div>
+              <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#f7f3ed", borderColor: "#e7ded2", color: "#2d2a26" }}>
+                {state.result || state.status}
+              </div>
+              <div className="mt-2 text-xs opacity-60">
+                Tests: {testsPassed === null ? "running…" : testsPassed ? "passed" : "failed — check console"}
+              </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <button onClick={handleReveal} disabled={!canReveal} className="px-4 py-2 rounded-2xl font-semibold disabled:opacity-40" style={{ background: "#efe7dc", color: TEXT }}>Reveal fifth column</button>
+                <button
+                  onClick={handleReveal}
+                  disabled={!canReveal}
+                  className="px-4 py-2 rounded-2xl font-semibold disabled:opacity-40"
+                  style={{ background: "#efe7dc", color: "#2d2a26" }}
+                >
+                  Reveal fifth column
+                </button>
               </div>
             </div>
 
-            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#e7ded2" }}>
               <div className="text-lg font-semibold">Computer opponent</div>
-              <label className="flex items-center justify-between gap-3 text-sm"><span>Mode</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: "#ffffff", border: `1px solid ${BORDER}`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
-                  <option value="human">Human vs Human</option><option value="cpu">Human vs Computer</option>
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span>Mode</span>
+                <select className="rounded-xl px-3 py-2" style={{ background: '#ffffff', border: '1px solid #e7ded2', color: '#2d2a26' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                  <option value="human">Human vs Human</option>
+                  <option value="cpu">Human vs Computer</option>
                 </select>
               </label>
-              <label className="flex items-center justify-between gap-3 text-sm"><span>Computer plays</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: "#ffffff", border: `1px solid ${BORDER}`, color: TEXT }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
-                  <option value="white">White</option><option value="black">Black</option>
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span>Computer plays</span>
+                <select className="rounded-xl px-3 py-2" style={{ background: '#ffffff', border: '1px solid #e7ded2', color: '#2d2a26' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
+                  <option value="white">White</option>
+                  <option value="black">Black</option>
                 </select>
               </label>
-              <label className="flex items-center justify-between gap-3 text-sm"><span>Level</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: "#ffffff", border: `1px solid ${BORDER}`, color: TEXT }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
-                  <option value="Easy">Easy</option><option value="Medium">Medium</option><option value="Hard">Hard</option><option value="Master">Master</option>
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span>Level</span>
+                <select className="rounded-xl px-3 py-2" style={{ background: '#ffffff', border: '1px solid #e7ded2', color: '#2d2a26' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
+                  <option>Easy</option>
+                  <option>Medium</option>
+                  <option>Hard</option>
+                  <option>Master</option>
                 </select>
               </label>
               {thinking && <div className="text-xs tracking-[0.18em] uppercase" style={{ color: ACCENT }}>thinking…</div>}
             </div>
 
-            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#e7ded2" }}>
               <div className="text-lg font-semibold">Secret intel</div>
               <div className="flex gap-2 flex-wrap">
-                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "white" ? "none" : "white" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2, color: TEXT }}>Peek as White</button>
-                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "black" ? "none" : "black" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2, color: TEXT }}>Peek as Black</button>
+                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "white" ? "none" : "white" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
+                  Peek as White
+                </button>
+                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "black" ? "none" : "black" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
+                  Peek as Black
+                </button>
               </div>
               <div className="text-xs opacity-60">For human-vs-human this is honor-system intel, so the wrong player should look away.</div>
-              <div className="rounded-2xl p-3 text-sm min-h-20" style={{ background: PANEL_2, color: TEXT }}>
+              <div className="rounded-2xl p-3 text-sm min-h-20" style={{ background: "#f7f3ed", color: "#2d2a26" }}>
                 {!visibleIntel && "No intel currently shown."}
-                {visibleIntel && <>
-                  <div><span className="font-semibold capitalize">{visibleIntel.viewer}</span> knows the secret asset inside <span className="font-semibold capitalize">{visibleIntel.target}</span>'s army.</div>
-                  <div className="mt-2">
-                    {visibleIntel.hostSq && visibleIntel.piece ? <>
-                      Current host square: <span className="font-semibold">{visibleIntel.hostSq}</span> · Piece: {GLYPHS[visibleIntel.piece.color][visibleIntel.piece.type]} · {visibleIntel.secret.revealed ? "already revealed" : "still hidden"}
-                    </> : <>That fifth-column piece is no longer on the board.</>}
-                  </div>
-                </>}
+                {visibleIntel && (
+                  <>
+                    <div>
+                      <span className="font-semibold capitalize">{visibleIntel.viewer}</span> knows the secret asset inside <span className="font-semibold capitalize">{visibleIntel.target}</span>'s army.
+                    </div>
+                    <div className="mt-2">
+                      {visibleIntel.hostSq && visibleIntel.piece ? (
+                        <>
+                          Current host square: <span className="font-semibold">{visibleIntel.hostSq}</span> · Piece: {GLYPHS[visibleIntel.piece.color][visibleIntel.piece.type]} · {visibleIntel.secret.revealed ? "already revealed" : "still hidden"}
+                        </>
+                      ) : (
+                        <>That fifth-column piece is no longer on the board.</>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-[28px] p-3 md:p-4 border shadow-2xl" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="rounded-[28px] p-3 md:p-4 border shadow-2xl" style={{ background: PANEL, borderColor: "#e7ded2" }}>
               <div className="grid grid-cols-[auto_1fr] grid-rows-[1fr_auto] gap-x-2 gap-y-2 items-stretch">
                 <div className="grid grid-rows-8">
-                  {boardOrderRanks.map((rank) => <div key={`rank-${rank}`} className="flex items-center justify-center text-sm select-none" style={{ color: ACCENT }}>{rank}</div>)}
+                  {rankLabels.map((rank) => (
+                    <div
+                      key={`rank-${rank}`}
+                      className="flex items-center justify-center text-sm select-none"
+                      style={{ color: ACCENT }}
+                    >
+                      {rank}
+                    </div>
+                  ))}
                 </div>
+
                 <div className="grid grid-cols-8 overflow-hidden rounded-2xl">
                   {boardOrderRanks.map((rank) =>
                     boardOrderFiles.map((file) => {
                       const sq = `${file}${rank}` as Square;
                       const lm = state.lastMove;
-                      const highlight: "from" | "to" | "none" = lm?.from === sq ? "from" : lm?.to === sq ? "to" : "none";
-                      return <SquareView key={sq} sq={sq} piece={state.board[sq]} selected={state.selected === sq} highlight={highlight} onClick={() => handleClick(sq)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} flipped={state.flipped} />;
+                      const highlight = lm?.from === sq ? "from" : lm?.to === sq ? "to" : "none";
+                      return (
+                        <SquareView
+                          key={sq}
+                          sq={sq}
+                          piece={state.board[sq]}
+                          selected={state.selected === sq}
+                          highlight={highlight}
+                          onClick={() => handleClick(sq)}
+                          onDragStart={handleDragStart}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                          flipped={state.flipped}
+                        />
+                      );
                     }),
                   )}
                 </div>
+
                 <div />
+
                 <div className="grid grid-cols-8">
-                  {boardOrderFiles.map((file) => <div key={`file-${file}`} className="flex items-center justify-center pt-1 text-sm lowercase select-none" style={{ color: ACCENT }}>{file}</div>)}
+                  {fileLabels.map((file) => (
+                    <div
+                      key={`file-${file}`}
+                      className="flex items-center justify-center pt-1 text-sm lowercase select-none"
+                      style={{ color: ACCENT }}
+                    >
+                      {file}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} />
               <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} />
@@ -971,18 +1327,32 @@ export default function App() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
               <div className="text-lg font-semibold mb-3">Selected piece</div>
               {!selectedPiece && <div className="text-sm opacity-70">Select a piece to move or self-capture.</div>}
-              {selectedPiece && <div className="space-y-2 text-sm">
-                <div className="text-6xl leading-none" style={{ color: selectedPiece.color === "white" ? "#ffffff" : "#000000" }}>{GLYPHS[selectedPiece.color][selectedPiece.type]}</div>
-                <div>Square: <span className="font-semibold">{state.selected}</span></div>
-                <div>Color: <span className="font-semibold capitalize">{selectedPiece.color}</span></div>
-                <div>Type: <span className="font-semibold">{selectedPiece.type}</span></div>
-                <div>Promoted: <span className="font-semibold">{selectedPiece.promotedFromPawn ? "yes" : "no"}</span></div>
-              </div>}
+              {selectedPiece && (
+                <div className="space-y-2 text-sm">
+                  <div
+                    className="text-6xl leading-none"
+                    style={{
+                      color: selectedPiece.color === "white" ? "#ffffff" : "#000000",
+                      background: selectedPiece.color === "white" ? "#2d2a26" : "#f2f2f2",
+                      borderRadius: "12px",
+                      padding: "8px",
+                      display: "inline-block",
+                    }}
+                  >
+                    {GLYPHS[selectedPiece.color][selectedPiece.type]}
+                  </div>
+                  <div>Square: <span className="font-semibold">{state.selected}</span></div>
+                  <div>Color: <span className="font-semibold capitalize">{selectedPiece.color}</span></div>
+                  <div>Type: <span className="font-semibold">{selectedPiece.type}</span></div>
+                  <div>Promoted: <span className="font-semibold">{selectedPiece.promotedFromPawn ? "yes" : "no"}</span></div>
+                </div>
+              )}
             </div>
-            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
+
+            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
               <div className="text-lg font-semibold mb-3">Variant summary</div>
               <div className="text-sm space-y-2 opacity-90">
                 <p>Classical start position.</p>
@@ -997,34 +1367,44 @@ export default function App() {
         </div>
       </div>
 
-      {state.pendingPromotion && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-        <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: PANEL, borderColor: BORDER }}>
-          <div className="text-xl font-semibold mb-3">Choose promotion</div>
-          <div className="grid grid-cols-4 gap-3">
-            {PROMOTION_TYPES.map((type) => <button key={type} onClick={() => handlePromotion(type)} className="rounded-2xl p-4 text-6xl leading-none" style={{ background: "#f2f2f2", color: state.pendingPromotion?.color === "white" ? "#111" : "#000" }}>{GLYPHS[state.pendingPromotion!.color][type]}</button>)}
+      {state.pendingPromotion && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+            <div className="text-xl font-semibold mb-3">Choose promotion</div>
+            <div className="grid grid-cols-4 gap-3">
+              {PROMOTION_TYPES.map((type) => (
+                <button key={type} onClick={() => handlePromotion(type)} className="rounded-2xl p-4 text-6xl leading-none" style={{ background: "#f2f2f2", color: state.pendingPromotion?.color === "white" ? "#111" : "#000" }}>
+                  {GLYPHS[state.pendingPromotion!.color][type]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>}
+      )}
 
-      {state.showRules && <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setState((s) => ({ ...s, showRules: false }))}>
-        <div className="w-full max-w-4xl max-h-[88vh] overflow-auto rounded-3xl p-6 border" style={{ background: PANEL, borderColor: BORDER }} onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="text-2xl font-semibold">Rules & Info</div>
-            <button onClick={() => setState((s) => ({ ...s, showRules: false }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>Close</button>
-          </div>
-          <div className="space-y-4 text-sm leading-6 opacity-95">
-            <p>This version keeps the Kafka-style visual language but uses a much simpler architecture and a completely different ruleset.</p>
-            <p><strong>1.</strong> The board starts from the normal classical chess setup.</p>
-            <p><strong>2.</strong> At game start, one pawn, bishop, rook, or knight from each side is randomly assigned to the opponent. That hidden asset is the <strong>fifth column</strong>.</p>
-            <p><strong>3.</strong> Only the opponent knows which piece it is. In human-vs-human mode the side peek buttons are honor-system only.</p>
-            <p><strong>4.</strong> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
-            <p><strong>5.</strong> Until a side's hidden fifth column is revealed, that host player may self-capture their own non-king / non-queen pieces. No piece may ever be suicided off the board.</p>
-            <p><strong>6.</strong> If a hidden fifth-column piece is self-captured by its host player, the game automatically reports that it was the opponent's fifth column.</p>
-            <p><strong>7.</strong> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
-            <p><strong>Included:</strong> flip board, four AI levels, rules modal, drag-and-drop, castling, en passant, and Quietus as captured-pieces display only.</p>
+      {state.showRules && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setState((s) => ({ ...s, showRules: false }))}>
+          <div className="w-full max-w-4xl max-h-[88vh] overflow-auto rounded-3xl p-6 border" style={{ background: PANEL, borderColor: "#e7ded2" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="text-2xl font-semibold">Rules & Info</div>
+              <button onClick={() => setState((s) => ({ ...s, showRules: false }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
+                Close
+              </button>
+            </div>
+            <div className="space-y-4 text-sm leading-6 opacity-95">
+              <p>This version keeps the Kafka-style visual language but uses a much simpler architecture and a completely different ruleset.</p>
+              <p><strong>1.</strong> The board starts from the normal classical chess setup.</p>
+              <p><strong>2.</strong> At game start, one pawn, bishop, rook, or knight from each side is randomly assigned to the opponent. That hidden asset is the <strong>fifth column</strong>.</p>
+              <p><strong>3.</strong> Only the opponent knows which piece it is. In human-vs-human mode the side peek buttons are honor-system only.</p>
+              <p><strong>4.</strong> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
+              <p><strong>5.</strong> Until a side's hidden fifth column is revealed, that host player may self-capture their own non-king / non-queen pieces. No piece may ever be suicided off the board.</p>
+              <p><strong>6.</strong> If a hidden fifth-column piece is self-captured by its host player, the game automatically reports that it was the opponent's fifth column.</p>
+              <p><strong>7.</strong> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
+              <p><strong>Included:</strong> flip board, four AI levels, rules modal, drag-and-drop, castling, en passant, and Quietus as captured-pieces display only.</p>
+            </div>
           </div>
         </div>
-      </div>}
+      )}
     </div>
   );
 }
