@@ -1231,38 +1231,6 @@ export default function App() {
               </label>
               {thinking && <div className="text-xs tracking-[0.18em] uppercase" style={{ color: ACCENT }}>thinking…</div>}
             </div>
-
-            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#e7ded2" }}>
-              <div className="text-lg font-semibold">Secret intel</div>
-              <div className="flex gap-2 flex-wrap">
-                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "white" ? "none" : "white" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
-                  Peek as White
-                </button>
-                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "black" ? "none" : "black" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
-                  Peek as Black
-                </button>
-              </div>
-              <div className="text-xs opacity-60">For human-vs-human this is honor-system intel, so the wrong player should look away.</div>
-              <div className="rounded-2xl p-3 text-sm min-h-20" style={{ background: "#f7f3ed", color: "#2d2a26" }}>
-                {!visibleIntel && "No intel currently shown."}
-                {visibleIntel && (
-                  <>
-                    <div>
-                      <span className="font-semibold capitalize">{visibleIntel.viewer}</span> knows the secret asset inside <span className="font-semibold capitalize">{visibleIntel.target}</span>'s army.
-                    </div>
-                    <div className="mt-2">
-                      {visibleIntel.hostSq && visibleIntel.piece ? (
-                        <>
-                          Current host square: <span className="font-semibold">{visibleIntel.hostSq}</span> · Piece: {GLYPHS[visibleIntel.piece.color][visibleIntel.piece.type]} · {visibleIntel.secret.revealed ? "already revealed" : "still hidden"}
-                        </>
-                      ) : (
-                        <>That fifth-column piece is no longer on the board.</>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
           </div>
 
           <div className="space-y-4">
@@ -1327,29 +1295,36 @@ export default function App() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
-              <div className="text-lg font-semibold mb-3">Selected piece</div>
-              {!selectedPiece && <div className="text-sm opacity-70">Select a piece to move or self-capture.</div>}
-              {selectedPiece && (
-                <div className="space-y-2 text-sm">
-                  <div
-                    className="text-6xl leading-none"
-                    style={{
-                      color: selectedPiece.color === "white" ? "#ffffff" : "#000000",
-                      background: selectedPiece.color === "white" ? "#2d2a26" : "#f2f2f2",
-                      borderRadius: "12px",
-                      padding: "8px",
-                      display: "inline-block",
-                    }}
-                  >
-                    {GLYPHS[selectedPiece.color][selectedPiece.type]}
-                  </div>
-                  <div>Square: <span className="font-semibold">{state.selected}</span></div>
-                  <div>Color: <span className="font-semibold capitalize">{selectedPiece.color}</span></div>
-                  <div>Type: <span className="font-semibold">{selectedPiece.type}</span></div>
-                  <div>Promoted: <span className="font-semibold">{selectedPiece.promotedFromPawn ? "yes" : "no"}</span></div>
-                </div>
-              )}
+            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+              <div className="text-lg font-semibold">Fifth column</div>
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "white" ? "none" : "white" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
+                  Peek as White
+                </button>
+                <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "black" ? "none" : "black" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
+                  Peek as Black
+                </button>
+              </div>
+              <div className="text-xs opacity-60">For human-vs-human this is honor-system intel, so the wrong player should look away.</div>
+              <div className="rounded-2xl p-3 text-sm min-h-20" style={{ background: "#f7f3ed", color: "#2d2a26" }}>
+                {!visibleIntel && "No intel currently shown."}
+                {visibleIntel && (
+                  <>
+                    <div>
+                      <span className="font-semibold capitalize">{visibleIntel.viewer}</span> knows the secret asset inside <span className="font-semibold capitalize">{visibleIntel.target}</span>'s army.
+                    </div>
+                    <div className="mt-2">
+                      {visibleIntel.hostSq && visibleIntel.piece ? (
+                        <>
+                          Current host square: <span className="font-semibold">{visibleIntel.hostSq}</span> · Piece: {GLYPHS[visibleIntel.piece.color][visibleIntel.piece.type]} · {visibleIntel.secret.revealed ? "already revealed" : "still hidden"}
+                        </>
+                      ) : (
+                        <>That fifth-column piece is no longer on the board.</>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
