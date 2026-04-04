@@ -139,7 +139,7 @@ function createSecrets(board: Record<Square, Piece | null>): State["secrets"] {
   for (const sq of Object.keys(board) as Square[]) {
     const p = board[sq];
     if (!p) continue;
-    if (p.type === "P" || p.type === "B" || p.type === "R" || p.type === "N") {
+    if (p.type === "P" || p.type === "B" || p.type === "N") {
       if (p.color === "white") whitePool.push({ piece: { ...p }, square: sq });
       else blackPool.push({ piece: { ...p }, square: sq });
     }
@@ -638,6 +638,8 @@ function runSelfTests() {
   assert(secrets.black.pieceId !== board["e8"]?.id, "black secret never points to a king");
   assert(board[secrets.white.initialSquare]?.id === secrets.white.pieceId, "white secret initial square matches secret piece id");
   assert(board[secrets.black.initialSquare]?.id === secrets.black.pieceId, "black secret initial square matches secret piece id");
+  assert(board[secrets.white.initialSquare]?.type !== "R", "white secret is never a rook");
+  assert(board[secrets.black.initialSquare]?.type !== "R", "black secret is never a rook");
 
   const start = initialState();
   const whiteLegal = legalMoves(start, "white");
@@ -842,7 +844,20 @@ function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
     <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: BORDER }}>
       <div className="text-sm font-semibold mb-2">{title}</div>
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
-        {pieces.length ? pieces.map((p, i) => <span key={`${p.id}-${i}`}>{GLYPHS[p.color][p.type]}</span>) : <span className="text-sm opacity-60">—</span>}
+        {pieces.length ? pieces.map((p, i) => (
+          <span
+            key={`${p.id}-${i}`}
+            style={{
+              fontSize: "2.2rem",
+              lineHeight: 1,
+              textShadow: p.color === "white" ? "0 0 2px #000, 0 0 2px #000" : "none",
+              WebkitTextStroke: p.color === "white" ? "2px #000" : undefined,
+              color: p.color === "white" ? "#ffffff" : "#000000",
+            }}
+          >
+            {GLYPHS[p.color][p.type]}
+          </span>
+        )) : <span className="text-sm opacity-60">—</span>}
       </div>
     </div>
   );
@@ -1168,7 +1183,7 @@ export default function App() {
 <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
   <div className="text-lg font-semibold mb-3">Variant summary</div>
   <div className="text-sm space-y-2 opacity-90">
-    <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, rook, or knight on the opponent's side.</p>
+        <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, or knight on the opponent's side.</p>
 
     <p>On your turn, you may reveal that piece instead of moving. It flips color and joins your side.</p>
 
@@ -1213,7 +1228,7 @@ export default function App() {
             <div className="space-y-4 text-sm leading-6 opacity-95">
               <p>This version keeps the Kafka-style visual language but uses a much simpler architecture and a completely different ruleset.</p>
               <p><strong>1.</strong> The board starts from the normal classical chess setup.</p>
-              <p><strong>2.</strong> At game start, one pawn, bishop, rook, or knight from each side is randomly assigned to the opponent. That hidden asset is the <strong>fifth column</strong>.</p>
+              <p><strong>2.</strong> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the <strong>fifth column</strong>.</p>
               <p><strong>3.</strong> Only the opponent knows which piece it is.</p>
               <p><strong>4.</strong> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
               <p><strong>5.</strong> Until a side's hidden fifth column is revealed, that host player may self-capture their own non-king / non-queen pieces. No piece may ever be suicided off the board.</p>
