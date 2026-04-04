@@ -64,9 +64,9 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
 
 const WOOD_LIGHT = "#dcc4a1";
 const WOOD_DARK = "#7a5a37";
-const PANEL = "#ffffff";
-const PANEL_2 = "#f7f3ed";
-const ACCENT = "#c08457";
+const PANEL = "#e2d6c6"; // darker than page bg for contrast
+const PANEL_2 = "#d6c7b4"; // secondary darker layer
+const ACCENT = "#b07a52";
 
 const other = (c: Color): Color => (c === "white" ? "black" : "white");
 const keyOf = (f: number, r: number) => `${FILES[f]}${r}` as Square;
@@ -1166,14 +1166,14 @@ export default function App() {
   const thinking = state.mode === "cpu" && state.turn === state.cpuColor && !state.pendingPromotion && !state.winner;
 
   return (
-    <div className="min-h-screen text-[#2d2a26]" style={{ background: "#faf7f2" }}>
+    <div className="min-h-screen text-[#3a332c]" style={{ background: "#f3ede5" }}>
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(520px,1fr)_280px] gap-4">
           <div className="space-y-4">
-            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#bfae99" }}>
               <div className="text-xl font-semibold mb-3">Fifth Column Chess</div>
               <div className="flex flex-wrap gap-2">
-                <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold text-black" style={{ background: "#efe7dc", color: "#2d2a26" }}>
+                <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold text-black" style={{ background: "#efe7dc", color: "#3a332c" }}>
                   New Game
                 </button>
                 <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
@@ -1186,43 +1186,41 @@ export default function App() {
               <div className="mt-4 text-sm opacity-80">
                 Turn: <span className="font-semibold capitalize">{state.turn}</span>
               </div>
-              <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#f7f3ed", borderColor: "#e7ded2", color: "#2d2a26" }}>
+              <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#ddd0bf", borderColor: "#bfae99", color: "#3a332c" }}>
                 {state.result || state.status}
               </div>
-              <div className="mt-2 text-xs opacity-60">
-                Tests: {testsPassed === null ? "running…" : testsPassed ? "passed" : "failed — check console"}
-              </div>
+              
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={handleReveal}
                   disabled={!canReveal}
                   className="px-4 py-2 rounded-2xl font-semibold disabled:opacity-40"
-                  style={{ background: "#efe7dc", color: "#2d2a26" }}
+                  style={{ background: "#efe7dc", color: "#3a332c" }}
                 >
                   Reveal fifth column
                 </button>
               </div>
             </div>
 
-            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#bfae99" }}>
               <div className="text-lg font-semibold">Computer opponent</div>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Mode</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: '#ffffff', border: '1px solid #e7ded2', color: '#2d2a26' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: '#f4f1ec', border: '1px solid #d9cfc2', color: '#3a332c' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
                   <option value="human">Human vs Human</option>
                   <option value="cpu">Human vs Computer</option>
                 </select>
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Computer plays</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: '#ffffff', border: '1px solid #e7ded2', color: '#2d2a26' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: '#f4f1ec', border: '1px solid #d9cfc2', color: '#3a332c' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
                   <option value="white">White</option>
                   <option value="black">Black</option>
                 </select>
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Level</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: '#ffffff', border: '1px solid #e7ded2', color: '#2d2a26' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: '#f4f1ec', border: '1px solid #d9cfc2', color: '#3a332c' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
                   <option>Easy</option>
                   <option>Medium</option>
                   <option>Hard</option>
@@ -1234,7 +1232,7 @@ export default function App() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-[28px] p-3 md:p-4 border shadow-2xl" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+            <div className="rounded-[28px] p-3 md:p-4 border shadow-2xl" style={{ background: PANEL, borderColor: "#bfae99" }}>
               <div className="grid grid-cols-[auto_1fr] grid-rows-[1fr_auto] gap-x-2 gap-y-2 items-stretch">
                 <div className="grid grid-rows-8">
                   {rankLabels.map((rank) => (
@@ -1295,7 +1293,7 @@ export default function App() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+            <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: "#bfae99" }}>
               <div className="text-lg font-semibold">Fifth column</div>
               <div className="flex gap-2 flex-wrap">
                 <button onClick={() => setState((s) => ({ ...s, peek: s.peek === "white" ? "none" : "white" }))} className="px-3 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2 }}>
@@ -1306,7 +1304,7 @@ export default function App() {
                 </button>
               </div>
               <div className="text-xs opacity-60">For human-vs-human this is honor-system intel, so the wrong player should look away.</div>
-              <div className="rounded-2xl p-3 text-sm min-h-20" style={{ background: "#f7f3ed", color: "#2d2a26" }}>
+              <div className="rounded-2xl p-3 text-sm min-h-20" style={{ background: "#ddd0bf", color: "#3a332c" }}>
                 {!visibleIntel && "No intel currently shown."}
                 {visibleIntel && (
                   <>
@@ -1327,7 +1325,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: "#bfae99" }}>
               <div className="text-lg font-semibold mb-3">Variant summary</div>
               <div className="text-sm space-y-2 opacity-90">
                 <p>Classical start position.</p>
@@ -1344,11 +1342,11 @@ export default function App() {
 
       {state.pendingPromotion && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: PANEL, borderColor: "#e7ded2" }}>
+          <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: PANEL, borderColor: "#bfae99" }}>
             <div className="text-xl font-semibold mb-3">Choose promotion</div>
             <div className="grid grid-cols-4 gap-3">
               {PROMOTION_TYPES.map((type) => (
-                <button key={type} onClick={() => handlePromotion(type)} className="rounded-2xl p-4 text-6xl leading-none" style={{ background: "#f2f2f2", color: state.pendingPromotion?.color === "white" ? "#111" : "#000" }}>
+                <button key={type} onClick={() => handlePromotion(type)} className="rounded-2xl p-4 text-6xl leading-none" style={{ background: "#d6c7b4", color: state.pendingPromotion?.color === "white" ? "#111" : "#000" }}>
                   {GLYPHS[state.pendingPromotion!.color][type]}
                 </button>
               ))}
@@ -1359,7 +1357,7 @@ export default function App() {
 
       {state.showRules && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setState((s) => ({ ...s, showRules: false }))}>
-          <div className="w-full max-w-4xl max-h-[88vh] overflow-auto rounded-3xl p-6 border" style={{ background: PANEL, borderColor: "#e7ded2" }} onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-4xl max-h-[88vh] overflow-auto rounded-3xl p-6 border" style={{ background: PANEL, borderColor: "#bfae99" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="text-2xl font-semibold">Rules & Info</div>
               <button onClick={() => setState((s) => ({ ...s, showRules: false }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
