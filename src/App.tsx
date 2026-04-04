@@ -813,7 +813,7 @@ function SquareView({
       }}
     >
       {piece && (
-        <div style={{ fontSize: "3.4rem", lineHeight: 1, textShadow: "none", color: piece.color === "white" ? "#ffffff" : "#000000" }}>
+        <div style={{ fontSize: "3.4rem", lineHeight: 1, textShadow: piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none", WebkitTextStroke: piece.color === "white" ? "1px #000" : undefined, color: piece.color === "white" ? "#ffffff" : "#000000" }}>
           {GLYPHS[piece.color][piece.type]}
         </div>
       )}
