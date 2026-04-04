@@ -887,15 +887,24 @@ function FifthColumnCard({
   info,
   onToggle,
   onHide,
+  canReveal,
+  isSecretRevealed,
+  onReveal,
 }: {
   revealed: boolean;
   info: {
     secret: SecretInfo;
     piece: Piece | null;
+    originalPiece: Piece | null;
   } | null;
   onToggle: () => void;
   onHide: () => void;
+  canReveal: boolean;
+  isSecretRevealed: boolean;
+  onReveal: () => void;
 }) {
+  const displayPiece = info?.piece || info?.originalPiece || null;
+
   return (
     <div className="flex justify-center">
       <button
@@ -923,22 +932,44 @@ function FifthColumnCard({
 
         {revealed && info && (
           <div className="h-full p-4 flex flex-col items-center justify-center text-center" style={{ background: "#ffffff" }}>
-            {info.piece ? (
-              <div
-                style={{
-                  fontSize: "5.2rem",
-                  lineHeight: 1,
-                  textShadow: info.piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
-                  WebkitTextStroke: info.piece.color === "white" ? "1px #000" : undefined,
-                  color: info.piece.color === "white" ? "#ffffff" : "#000000",
-                }}
-              >
-                {GLYPHS[info.piece.color][info.piece.type]}
+            <div className="text-[10px] font-normal uppercase tracking-[0.12em]" style={{ color: "#000000", opacity: 0.8 }}>
+              {isSecretRevealed ? (info.piece ? "Revealed" : "Removed") : "Hidden"}
+            </div>
+            <div className="mt-3 flex-1 flex items-center justify-center">
+              {displayPiece ? (
+                <div
+                  style={{
+                    fontSize: "5.2rem",
+                    fontFamily: "Segoe UI Symbol, Noto Sans Symbols, serif",
+                    lineHeight: 1,
+                    textShadow: displayPiece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
+                    WebkitTextStroke: displayPiece.color === "white" ? "1px #000" : undefined,
+                    color: displayPiece.color === "white" ? "#ffffff" : "#000000",
+                    opacity: info.piece ? 1 : 0.5,
+                  }}
+                >
+                  {GLYPHS[displayPiece.color][displayPiece.type]}
+                </div>
+              ) : (
+                <div className="text-xs opacity-70 px-2">Unknown</div>
+              )}
+            </div>
+            <div className="text-sm font-semibold">{info.secret.initialSquare}</div>
+            {!isSecretRevealed && canReveal && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReveal();
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+                  style={{ background: "#ffffff", color: "#000000", border: "1px solid #000000" }}
+                >
+                  Reveal fifth column
+                </button>
               </div>
-            ) : (
-              <div className="text-xs opacity-70 px-2">Removed</div>
             )}
-            <div className="mt-4 text-sm font-semibold">{info.secret.initialSquare}</div>
           </div>
         )}
       </button>
@@ -964,7 +995,8 @@ export default function App() {
     const secret = state.secrets[state.peek];
     const currentSquare = (Object.keys(state.board) as Square[]).find((sq) => state.board[sq]?.id === secret.pieceId) || null;
     const piece = currentSquare ? state.board[currentSquare] : null;
-    return { viewer: state.peek, target: other(state.peek), secret, currentSquare, piece };
+    const originalPiece = piece || { id: secret.pieceId, type: secret.pieceId.split("-")[1] as PieceType, color: state.peek, moved: true };
+    return { viewer: state.peek, target: other(state.peek), secret, currentSquare, piece, originalPiece };
   }, [state.peek, state.secrets, state.board]);
 
   useEffect(() => {
@@ -1081,12 +1113,7 @@ export default function App() {
               <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
                 {state.result || state.status}
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button onClick={handleReveal} disabled={!canReveal} className="px-4 py-2 rounded-2xl font-semibold disabled:opacity-40" style={{ background: "#ffffff", color: TEXT }}>
-                  Reveal fifth column
-                </button>
               </div>
-            </div>
 
             <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-lg font-semibold">Computer opponent</div>
@@ -1174,9 +1201,12 @@ export default function App() {
               <div className="text-lg font-semibold">Fifth column</div>
               <FifthColumnCard
                 revealed={state.peek === peekSide}
-                info={visibleIntel ? { secret: visibleIntel.secret, piece: visibleIntel.piece } : null}
+                info={visibleIntel ? { secret: visibleIntel.secret, piece: visibleIntel.piece, originalPiece: visibleIntel.originalPiece } : null}
                 onToggle={() => setState((s) => ({ ...s, peek: s.peek === peekSide ? "none" : peekSide }))}
                 onHide={() => setState((s) => ({ ...s, peek: "none" }))}
+                canReveal={canReveal}
+                isSecretRevealed={state.secrets[peekSide].revealed}
+                onReveal={handleReveal}
               />
             </div>
 
