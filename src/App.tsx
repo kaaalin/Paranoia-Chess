@@ -850,19 +850,18 @@ function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
 
 function FloralTile() {
   return (
-    <svg viewBox="0 0 72 72" className="w-7 h-7 opacity-90" aria-hidden="true">
-      <g fill="none" stroke="rgba(244,241,236,0.92)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M36 36 C36 24, 43 18, 52 18 C52 28, 47 35, 36 36 Z" fill="rgba(244,241,236,0.18)" />
-        <path d="M36 36 C36 24, 29 18, 20 18 C20 28, 25 35, 36 36 Z" fill="rgba(244,241,236,0.18)" />
-        <path d="M36 36 C25 35, 18 28, 18 20 C28 20, 35 25, 36 36 Z" fill="rgba(244,241,236,0.14)" />
-        <path d="M36 36 C47 35, 54 28, 54 20 C44 20, 37 25, 36 36 Z" fill="rgba(244,241,236,0.14)" />
-        <path d="M36 35 C30 31, 27 25, 27 19 C31 18, 34 20, 36 24 C38 20, 41 18, 45 19 C45 25, 42 31, 36 35 Z" fill="rgba(244,241,236,0.28)" />
-        <circle cx="36" cy="36" r="4.5" fill="rgba(244,241,236,0.75)" stroke="rgba(244,241,236,0.95)" />
-        <path d="M36 40 C36 48, 33 54, 28 58" />
-        <path d="M36 40 C36 48, 39 54, 44 58" />
-        <path d="M28 58 C31 56, 34 56, 36 60 C38 56, 41 56, 44 58" fill="rgba(244,241,236,0.18)" />
-        <path d="M24 46 C28 43, 32 43, 36 47" />
-        <path d="M48 46 C44 43, 40 43, 36 47" />
+    <svg viewBox="0 0 96 96" className="w-9 h-9 opacity-90" aria-hidden="true">
+      <g fill="none" stroke="rgba(244,241,236,0.94)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M48 80 C44 68, 46 58, 52 48 C60 38, 70 34, 80 30" />
+        <path d="M48 80 C52 68, 50 58, 44 48 C36 38, 26 34, 16 30" />
+        <path d="M45 49 C37 47, 31 44, 27 38 C34 35, 40 38, 45 44" fill="rgba(244,241,236,0.14)" />
+        <path d="M51 49 C59 47, 65 44, 69 38 C62 35, 56 38, 51 44" fill="rgba(244,241,236,0.14)" />
+        <path d="M47 36 C42 32, 39 27, 38 19 C44 20, 47 23, 49 29" fill="rgba(244,241,236,0.14)" />
+        <path d="M49 36 C54 32, 57 27, 58 19 C52 20, 49 23, 47 29" fill="rgba(244,241,236,0.14)" />
+        <path d="M42 61 C37 63, 32 68, 29 75 C36 75, 40 71, 44 66" fill="rgba(244,241,236,0.14)" />
+        <path d="M54 61 C59 63, 64 68, 67 75 C60 75, 56 71, 52 66" fill="rgba(244,241,236,0.14)" />
+        <path d="M44 72 L48 66 L52 72" />
+        <path d="M48 80 C46 85, 43 88, 39 90" />
       </g>
     </svg>
   );
