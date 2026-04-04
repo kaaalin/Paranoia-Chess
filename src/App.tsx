@@ -1179,6 +1179,9 @@ export default function App() {
     <p>All the rest is like the classical chess.</p>
   </div>
 </div>
+          </div>
+        </div>
+      </div>
 
       {state.pendingPromotion && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
