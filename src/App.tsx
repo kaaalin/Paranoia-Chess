@@ -992,7 +992,7 @@ function SquareView({
       {piece && (
         <div
           style={{
-            transform: flipped ? "rotate(180deg)" : undefined,
+            
             fontSize: "3.4rem",
             lineHeight: 1,
             textShadow: "none",
