@@ -1168,15 +1168,15 @@ export default function App() {
             <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-lg font-semibold mb-3">Variant summary</div>
               <div className="text-sm space-y-2 opacity-90">
-                <p>Classical start position.
+                <p>Classical start position.</p>
 
-Each player secretly owns one 'fifth column' piece — a pawn, bishop, rook, or knight on the opponent’s side.
+<p></p>Each player secretly owns one 'fifth column' piece — a pawn, bishop, rook, or knight on the opponent’s side.</p>
 
-On your turn, you may reveal that piece instead of moving. It immediately flips color and joins your side.
+<p></p>On your turn, you may reveal that piece instead of moving. It immediately flips color and joins your side.</p>
 
-Before it is revealed, the host player may self-capture their own non-king, non-queen pieces in an episode of paranoia.
+<p></p>Before it is revealed, the host player may self-capture their own non-king, non-queen pieces in an episode of paranoia.</p>
 
-All the rest is like the classical chess.</p>
+<p></p>All the rest is like the classical chess.</p>
               </div>
             </div>
           </div>
