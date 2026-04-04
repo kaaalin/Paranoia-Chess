@@ -815,7 +815,7 @@ function SquareView({
       className="relative aspect-square flex items-center justify-center select-none"
       style={{
         background: isDark
-          ? `linear-gradient(135deg, ${WOOD_DARK} 0%, #6b4d2f 100%)`
+          ? ACCENT
           : `linear-gradient(135deg, #ead8bb 0%, ${WOOD_LIGHT} 100%)`,
         boxShadow: border,
       }}
@@ -1168,6 +1168,8 @@ export default function App() {
 <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
   <div className="text-lg font-semibold mb-3">Variant summary</div>
   <div className="text-sm space-y-2 opacity-90">
+    <p>Classical start position.</p>
+
     <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, rook, or knight on the opponent's side.</p>
 
     <p>On your turn, you may reveal that piece instead of moving. It flips color and joins your side.</p>
