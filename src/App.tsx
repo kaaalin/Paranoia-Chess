@@ -827,8 +827,8 @@ function SquareView({
           style={{
             fontSize: "3.4rem",
             lineHeight: 1,
-            textShadow: piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
-            WebkitTextStroke: piece.color === "white" ? "1px #000" : undefined,
+            textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
+            WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
             color: piece.color === "white" ? "#ffffff" : "#000000",
           }}
         >
@@ -850,8 +850,8 @@ function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
             style={{
               fontSize: "2.2rem",
               lineHeight: 1,
-              textShadow: p.color === "white" ? "0 0 2px #000, 0 0 2px #000" : "none",
-              WebkitTextStroke: p.color === "white" ? "2px #000" : undefined,
+              textShadow: p.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
+              WebkitTextStroke: p.color === "white" ? "1px #000" : undefined,
               color: p.color === "white" ? "#ffffff" : "#000000",
             }}
           >
