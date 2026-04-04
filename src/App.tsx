@@ -1170,11 +1170,11 @@ export default function App() {
   <div className="text-sm space-y-2 opacity-90">
     <p>Classical start position.</p>
 
-    <p>Each player secretly owns one 'fifth column' piece — a pawn, bishop, rook, or knight on the opponent’s side.</p>
+    <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, rook, or knight on the opponent's side.</p>
 
-    <p>On your turn, you may reveal that piece instead of moving. It immediately flips color and joins your side.</p>
+    <p>On your turn, you may reveal that piece instead of moving. It flips color and joins your side.</p>
 
-    <p>Before it is revealed, the host player may self-capture their own non-king, non-queen pieces in an episode of paranoia.</p>
+    <p>Before the fifth column in one's side is revealed, the player may self-capture their own non-king, non-queen pieces in an episode of paranoia.</p>
 
     <p>All the rest is like the classical chess.</p>
   </div>
