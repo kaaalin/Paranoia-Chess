@@ -870,7 +870,7 @@ function FloralTile() {
 function FifthColumnCard({
   revealed,
   info,
-  onShow,
+  onToggle,
   onHide,
 }: {
   revealed: boolean;
@@ -878,14 +878,17 @@ function FifthColumnCard({
     secret: SecretInfo;
     piece: Piece | null;
   } | null;
-  onShow: () => void;
+  onToggle: () => void;
   onHide: () => void;
 }) {
   return (
     <div className="flex justify-center">
-      <div
-        onMouseEnter={onShow}
-        onMouseLeave={onHide}
+      <button
+        type="button"
+        onClick={onToggle}
+        onMouseLeave={() => {
+          if (revealed) onHide();
+        }}
         className="w-[170px] h-[250px] rounded-[18px] border overflow-hidden transition-transform duration-150 hover:scale-[1.02] shadow-lg"
         style={{ background: PANEL_2, borderColor: BORDER, color: TEXT }}
       >
@@ -905,27 +908,25 @@ function FifthColumnCard({
 
         {revealed && info && (
           <div className="h-full p-4 flex flex-col items-center justify-center text-center" style={{ background: "#ffffff" }}>
-            <div className="h-28 w-28 rounded-2xl border flex items-center justify-center" style={{ background: PANEL, borderColor: BORDER }}>
-              {info.piece ? (
-                <div
-                  style={{
-                    fontSize: "4.4rem",
-                    lineHeight: 1,
-                    textShadow: info.piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
-                    WebkitTextStroke: info.piece.color === "white" ? "1px #000" : undefined,
-                    color: info.piece.color === "white" ? "#ffffff" : "#000000",
-                  }}
-                >
-                  {GLYPHS[info.piece.color][info.piece.type]}
-                </div>
-              ) : (
-                <div className="text-xs opacity-70 px-2">Removed</div>
-              )}
-            </div>
+            {info.piece ? (
+              <div
+                style={{
+                  fontSize: "5.2rem",
+                  lineHeight: 1,
+                  textShadow: info.piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
+                  WebkitTextStroke: info.piece.color === "white" ? "1px #000" : undefined,
+                  color: info.piece.color === "white" ? "#ffffff" : "#000000",
+                }}
+              >
+                {GLYPHS[info.piece.color][info.piece.type]}
+              </div>
+            ) : (
+              <div className="text-xs opacity-70 px-2">Removed</div>
+            )}
             <div className="mt-4 text-sm font-semibold">{info.secret.initialSquare}</div>
           </div>
         )}
-      </div>
+      </button>
     </div>
   );
 }
@@ -1159,7 +1160,7 @@ export default function App() {
               <FifthColumnCard
                 revealed={state.peek === peekSide}
                 info={visibleIntel ? { secret: visibleIntel.secret, piece: visibleIntel.piece } : null}
-                onShow={() => setState((s) => ({ ...s, peek: peekSide }))}
+                onToggle={() => setState((s) => ({ ...s, peek: s.peek === peekSide ? "none" : peekSide }))}
                 onHide={() => setState((s) => ({ ...s, peek: "none" }))}
               />
             </div>
@@ -1167,12 +1168,15 @@ export default function App() {
             <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-lg font-semibold mb-3">Variant summary</div>
               <div className="text-sm space-y-2 opacity-90">
-                <p>Classical start position.</p>
-                <p>Each player secretly owns one hostile pawn, bishop, rook, or knight in the opponent army.</p>
-                <p>On your turn you may reveal that asset instead of moving. It flips color immediately.</p>
-                <p>Before that reveal happens, the host player may self-capture their own non-king/non-queen pieces.</p>
-                <p>No piece can ever suicide off the board.</p>
-                <p>Quietus is only the capture display.</p>
+                <p>Classical start position.
+
+Each player secretly owns one 'fifth column' piece — a pawn, bishop, rook, or knight on the opponent’s side.
+
+On your turn, you may reveal that piece instead of moving. It immediately flips color and joins your side.
+
+Before it is revealed, the host player may self-capture their own non-king, non-queen pieces in an episode of paranoia.
+
+All the rest is like the classical chess.</p>
               </div>
             </div>
           </div>
