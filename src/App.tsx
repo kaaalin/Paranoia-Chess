@@ -17,6 +17,7 @@ type Piece = {
 type SecretInfo = {
   pieceId: string;
   revealed: boolean;
+  initialSquare: Square;
 };
 
 type Move = {
@@ -132,21 +133,24 @@ function randomFrom<T>(arr: T[]) {
 }
 
 function createSecrets(board: Record<Square, Piece | null>): State["secrets"] {
-  const whitePool: Piece[] = [];
-  const blackPool: Piece[] = [];
+  const whitePool: Array<{ piece: Piece; square: Square }> = [];
+  const blackPool: Array<{ piece: Piece; square: Square }> = [];
 
   for (const sq of Object.keys(board) as Square[]) {
     const p = board[sq];
     if (!p) continue;
     if (p.type === "P" || p.type === "B" || p.type === "R" || p.type === "N") {
-      if (p.color === "white") whitePool.push({ ...p });
-      else blackPool.push({ ...p });
+      if (p.color === "white") whitePool.push({ piece: { ...p }, square: sq });
+      else blackPool.push({ piece: { ...p }, square: sq });
     }
   }
 
+  const whiteSecret = randomFrom(blackPool);
+  const blackSecret = randomFrom(whitePool);
+
   return {
-    white: { pieceId: randomFrom(blackPool).id, revealed: false },
-    black: { pieceId: randomFrom(whitePool).id, revealed: false },
+    white: { pieceId: whiteSecret.piece.id, revealed: false, initialSquare: whiteSecret.square },
+    black: { pieceId: blackSecret.piece.id, revealed: false, initialSquare: blackSecret.square },
   };
 }
 
@@ -629,8 +633,11 @@ function runSelfTests() {
 
   const secrets = createSecrets(board);
   assert(!!secrets.white.pieceId && !!secrets.black.pieceId, "secrets are generated");
+  assert(!!secrets.white.initialSquare && !!secrets.black.initialSquare, "secret initial squares are stored");
   assert(secrets.white.pieceId !== board["e1"]?.id, "white secret never points to a king");
   assert(secrets.black.pieceId !== board["e8"]?.id, "black secret never points to a king");
+  assert(board[secrets.white.initialSquare]?.id === secrets.white.pieceId, "white secret initial square matches secret piece id");
+  assert(board[secrets.black.initialSquare]?.id === secrets.black.pieceId, "black secret initial square matches secret piece id");
 
   const start = initialState();
   const whiteLegal = legalMoves(start, "white");
@@ -659,7 +666,7 @@ function runSelfTests() {
     board: selfCapBoard,
     turn: "white",
     quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bk-s", revealed: false }, black: { pieceId: "wn-s", revealed: false } },
+    secrets: { white: { pieceId: "bk-s", revealed: false, initialSquare: "e8" }, black: { pieceId: "wn-s", revealed: false, initialSquare: "a3" } },
     peek: "none",
     pendingPromotion: null,
     enPassantTarget: null,
@@ -681,6 +688,7 @@ function runSelfTests() {
   const maskedCpuView = perspectiveStateForCpu(cpuPeekState);
   assert(maskedCpuView.secrets.white.pieceId === "__hidden__", "cpu view masks the human hidden fifth column");
   assert(maskedCpuView.secrets.black.pieceId === cpuPeekState.secrets.black.pieceId, "cpu keeps knowledge of its own fifth column");
+  assert(maskedCpuView.secrets.white.initialSquare === cpuPeekState.secrets.white.initialSquare, "cpu masking preserves initial square metadata");
 
   const promoBoard = {} as Record<Square, Piece | null>;
   for (const file of FILES) for (const rank of RANKS_ASC) promoBoard[`${file}${rank}` as Square] = null;
@@ -692,7 +700,7 @@ function runSelfTests() {
     board: promoBoard,
     turn: "white",
     quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bk2", revealed: false }, black: { pieceId: "wpromo", revealed: false } },
+    secrets: { white: { pieceId: "bk2", revealed: false, initialSquare: "e8" }, black: { pieceId: "wpromo", revealed: false, initialSquare: "a7" } },
     peek: "none",
     pendingPromotion: null,
     enPassantTarget: null,
@@ -718,7 +726,7 @@ function runSelfTests() {
     board: castleBoard,
     turn: "white",
     quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bk4", revealed: false }, black: { pieceId: "wr4", revealed: false } },
+    secrets: { white: { pieceId: "bk4", revealed: false, initialSquare: "e8" }, black: { pieceId: "wr4", revealed: false, initialSquare: "h1" } },
     peek: "none",
     pendingPromotion: null,
     enPassantTarget: null,
@@ -747,7 +755,7 @@ function runSelfTests() {
     board: epBoard,
     turn: "black",
     quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bp5", revealed: false }, black: { pieceId: "wp5", revealed: false } },
+    secrets: { white: { pieceId: "bp5", revealed: false, initialSquare: "d7" }, black: { pieceId: "wp5", revealed: false, initialSquare: "e5" } },
     peek: "none",
     pendingPromotion: null,
     enPassantTarget: null,
@@ -813,7 +821,15 @@ function SquareView({
       }}
     >
       {piece && (
-        <div style={{ fontSize: "3.4rem", lineHeight: 1, textShadow: piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none", WebkitTextStroke: piece.color === "white" ? "1px #000" : undefined, color: piece.color === "white" ? "#ffffff" : "#000000" }}>
+        <div
+          style={{
+            fontSize: "3.4rem",
+            lineHeight: 1,
+            textShadow: piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
+            WebkitTextStroke: piece.color === "white" ? "1px #000" : undefined,
+            color: piece.color === "white" ? "#ffffff" : "#000000",
+          }}
+        >
           {GLYPHS[piece.color][piece.type]}
         </div>
       )}
@@ -827,6 +843,89 @@ function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
       <div className="text-sm font-semibold mb-2">{title}</div>
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
         {pieces.length ? pieces.map((p, i) => <span key={`${p.id}-${i}`}>{GLYPHS[p.color][p.type]}</span>) : <span className="text-sm opacity-60">—</span>}
+      </div>
+    </div>
+  );
+}
+
+function FloralTile() {
+  return (
+    <svg viewBox="0 0 72 72" className="w-7 h-7 opacity-90" aria-hidden="true">
+      <g fill="none" stroke="rgba(244,241,236,0.92)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M36 36 C36 24, 43 18, 52 18 C52 28, 47 35, 36 36 Z" fill="rgba(244,241,236,0.18)" />
+        <path d="M36 36 C36 24, 29 18, 20 18 C20 28, 25 35, 36 36 Z" fill="rgba(244,241,236,0.18)" />
+        <path d="M36 36 C25 35, 18 28, 18 20 C28 20, 35 25, 36 36 Z" fill="rgba(244,241,236,0.14)" />
+        <path d="M36 36 C47 35, 54 28, 54 20 C44 20, 37 25, 36 36 Z" fill="rgba(244,241,236,0.14)" />
+        <path d="M36 35 C30 31, 27 25, 27 19 C31 18, 34 20, 36 24 C38 20, 41 18, 45 19 C45 25, 42 31, 36 35 Z" fill="rgba(244,241,236,0.28)" />
+        <circle cx="36" cy="36" r="4.5" fill="rgba(244,241,236,0.75)" stroke="rgba(244,241,236,0.95)" />
+        <path d="M36 40 C36 48, 33 54, 28 58" />
+        <path d="M36 40 C36 48, 39 54, 44 58" />
+        <path d="M28 58 C31 56, 34 56, 36 60 C38 56, 41 56, 44 58" fill="rgba(244,241,236,0.18)" />
+        <path d="M24 46 C28 43, 32 43, 36 47" />
+        <path d="M48 46 C44 43, 40 43, 36 47" />
+      </g>
+    </svg>
+  );
+}
+
+function FifthColumnCard({
+  revealed,
+  info,
+  onShow,
+  onHide,
+}: {
+  revealed: boolean;
+  info: {
+    secret: SecretInfo;
+    piece: Piece | null;
+  } | null;
+  onShow: () => void;
+  onHide: () => void;
+}) {
+  return (
+    <div className="flex justify-center">
+      <div
+        onMouseEnter={onShow}
+        onMouseLeave={onHide}
+        className="w-[170px] h-[250px] rounded-[18px] border overflow-hidden transition-transform duration-150 hover:scale-[1.02] shadow-lg"
+        style={{ background: PANEL_2, borderColor: BORDER, color: TEXT }}
+      >
+        {!revealed && (
+          <div className="relative h-full p-3" style={{ background: ACCENT }}>
+            <div className="absolute inset-[10px] rounded-[14px] border-2" style={{ borderColor: "rgba(244,241,236,0.72)" }} />
+            <div className="absolute inset-[20px] rounded-[10px] border" style={{ borderColor: "rgba(244,241,236,0.45)" }} />
+            <div className="absolute inset-[22px] rounded-[10px] overflow-hidden">
+              <div className="grid grid-cols-4 grid-rows-5 place-items-center h-full bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.05))]">
+                {Array.from({ length: 20 }).map((_, idx) => (
+                  <FloralTile key={idx} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {revealed && info && (
+          <div className="h-full p-4 flex flex-col items-center justify-center text-center" style={{ background: "#ffffff" }}>
+            <div className="h-28 w-28 rounded-2xl border flex items-center justify-center" style={{ background: PANEL, borderColor: BORDER }}>
+              {info.piece ? (
+                <div
+                  style={{
+                    fontSize: "4.4rem",
+                    lineHeight: 1,
+                    textShadow: info.piece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
+                    WebkitTextStroke: info.piece.color === "white" ? "1px #000" : undefined,
+                    color: info.piece.color === "white" ? "#ffffff" : "#000000",
+                  }}
+                >
+                  {GLYPHS[info.piece.color][info.piece.type]}
+                </div>
+              ) : (
+                <div className="text-xs opacity-70 px-2">Removed</div>
+              )}
+            </div>
+            <div className="mt-4 text-sm font-semibold">{info.secret.initialSquare}</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -848,8 +947,9 @@ export default function App() {
   const visibleIntel = useMemo(() => {
     if (state.peek === "none") return null;
     const secret = state.secrets[state.peek];
-    const hostSq = (Object.keys(state.board) as Square[]).find((sq) => state.board[sq]?.id === secret.pieceId) || null;
-    return { viewer: state.peek, target: other(state.peek), secret, hostSq, piece: hostSq ? state.board[hostSq] : null };
+    const currentSquare = (Object.keys(state.board) as Square[]).find((sq) => state.board[sq]?.id === secret.pieceId) || null;
+    const piece = currentSquare ? state.board[currentSquare] : null;
+    return { viewer: state.peek, target: other(state.peek), secret, currentSquare, piece };
   }, [state.peek, state.secrets, state.board]);
 
   useEffect(() => {
@@ -1057,35 +1157,12 @@ export default function App() {
           <div className="space-y-4">
             <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-lg font-semibold">Fifth column</div>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setState((s) => ({ ...s, peek: s.peek === peekSide ? "none" : peekSide }))}
-                  className="px-3 py-2 rounded-2xl font-semibold"
-                  style={{ background: PANEL_2, color: TEXT }}
-                >
-                  Show my fifth column
-                </button>
-              </div>
-              <div className="text-xs opacity-60">Only you can see your fifth column. The opponent, including the computer, cannot see it until revealed.</div>
-              <div className="rounded-2xl p-3 text-sm min-h-20" style={{ background: "#ede7df", color: TEXT }}>
-                {!visibleIntel && "No intel currently shown."}
-                {visibleIntel && (
-                  <>
-                    <div>
-                      <span className="font-semibold capitalize">{visibleIntel.viewer}</span> knows the secret asset inside <span className="font-semibold capitalize">{visibleIntel.target}</span>'s army.
-                    </div>
-                    <div className="mt-2">
-                      {visibleIntel.hostSq && visibleIntel.piece ? (
-                        <>
-                          Current host square: <span className="font-semibold">{visibleIntel.hostSq}</span> · Piece: {GLYPHS[visibleIntel.piece.color][visibleIntel.piece.type]} · {visibleIntel.secret.revealed ? "already revealed" : "still hidden"}
-                        </>
-                      ) : (
-                        <>That fifth-column piece is no longer on the board.</>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
+              <FifthColumnCard
+                revealed={state.peek === peekSide}
+                info={visibleIntel ? { secret: visibleIntel.secret, piece: visibleIntel.piece } : null}
+                onShow={() => setState((s) => ({ ...s, peek: peekSide }))}
+                onHide={() => setState((s) => ({ ...s, peek: "none" }))}
+              />
             </div>
 
             <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
