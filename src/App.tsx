@@ -846,7 +846,7 @@ function SquareView({
   );
 }
 
-function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
+function CapturedRow({ title, pieces, score }: { title: string; pieces: Piece[]; score?: number }) {
   const valueMap: Record<PieceType, number> = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
   const total = pieces.reduce((sum, p) => sum + valueMap[p.type], 0);
 
@@ -855,7 +855,7 @@ function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-semibold">{title}</div>
         <div className="text-sm font-semibold" style={{ color: TEXT }}>
-          {total > 0 ? total : ""}
+          {score && score > 0 ? score : ""}
         </div>
       </div>
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
@@ -1211,8 +1211,23 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} />
-              <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} />
+              {(() => {
+  const valueMap = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
+  const whiteTotal = state.quietus.white.reduce((s, p) => s + valueMap[p.type], 0);
+  const blackTotal = state.quietus.black.reduce((s, p) => s + valueMap[p.type], 0);
+
+  const diff = whiteTotal - blackTotal;
+
+  const whiteScore = diff > 0 ? diff : 0;
+  const blackScore = diff < 0 ? -diff : 0;
+
+  return (
+    <>
+      <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} />
+      <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} score={blackScore} />
+    </>
+  );
+})()}
             </div>
           </div>
 
