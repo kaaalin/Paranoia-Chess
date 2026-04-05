@@ -842,7 +842,7 @@ function SquareView({
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
   const border = selected
-    ? "0 0 0 3px rgba(131,178,190,.95) inset"
+    ? "0 0 0 3px #7a8a63 inset"
     : highlight === "from"
       ? "0 0 0 3px rgba(250,204,21,.75) inset"
       : highlight === "to"
@@ -881,10 +881,17 @@ function SquareView({
   );
 }
 
-function CapturedRow({ title, pieces, score, fifthColumnPieceIds }: { title: string; pieces: Piece[]; score?: number; fifthColumnPieceIds?: string[] }) {
-  const valueMap: Record<PieceType, number> = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
-  const total = pieces.reduce((sum, p) => sum + valueMap[p.type], 0);
-
+function CapturedRow({
+  title,
+  pieces,
+  score,
+  fifthColumnPieceIds,
+}: {
+  title: string;
+  pieces: Piece[];
+  score?: number;
+  fifthColumnPieceIds?: string[];
+}) {
   return (
     <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: BORDER }}>
       <div className="flex items-center justify-between mb-2">
