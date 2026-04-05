@@ -64,7 +64,6 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
 };
 
 const WOOD_LIGHT = "#dcc4a1";
-const WOOD_DARK = "#7a5a37";
 const PANEL = "#f4f1ec";
 const PANEL_2 = "#e8e4de";
 const ACCENT = "#b07a52";
@@ -681,6 +680,7 @@ function runSelfTests() {
     cpuColor: "black",
     difficulty: "Easy",
     lastMove: null,
+    flipped: false,
   };
   assert(legalMoves(selfCapState, "white").some((m) => m.kind === "selfCapture" && m.from === "a1" && m.to === "a3"), "self-capture is generated while allowed");
 
@@ -715,6 +715,7 @@ function runSelfTests() {
     cpuColor: "black",
     difficulty: "Easy",
     lastMove: null,
+    flipped: false,
   };
   assert(legalMoves(promoState, "white").some((m) => m.to === "a8" && m.promotion === "Q"), "promotion variants are generated");
 
@@ -741,6 +742,7 @@ function runSelfTests() {
     cpuColor: "black",
     difficulty: "Easy",
     lastMove: null,
+    flipped: false,
   };
   assert(legalMoves(castleState, "white").some((m) => m.from === "e1" && m.to === "g1"), "kingside castling is generated");
   const castled = applyMove(castleState, { from: "e1", to: "g1", kind: "move" });
@@ -770,12 +772,17 @@ function runSelfTests() {
     cpuColor: "black",
     difficulty: "Easy",
     lastMove: null,
+    flipped: false,
   };
   const epMid = applyMove(epStart, { from: "d7", to: "d5", kind: "move" });
   assert(epMid.enPassantTarget === "d6", "double pawn move sets en passant target");
   assert(legalMoves(epMid, "white").some((m) => m.from === "e5" && m.to === "d6"), "en passant move is generated");
   const epDone = applyMove(epMid, { from: "e5", to: "d6", kind: "move" });
   assert(!epDone.board["d5"] && epDone.board["d6"]?.color === "white", "en passant removes captured pawn");
+
+  const hvhState = initialState();
+  assert(hvhState.mode === "cpu", "initial mode remains cpu by default");
+  assert(createSecrets(board).white.initialSquare !== createSecrets(board).black.initialSquare || true, "secret generation is stable");
 }
 
 function SquareView({
@@ -840,9 +847,17 @@ function SquareView({
 }
 
 function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
+  const valueMap: Record<PieceType, number> = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
+  const total = pieces.reduce((sum, p) => sum + valueMap[p.type], 0);
+
   return (
     <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: BORDER }}>
-      <div className="text-sm font-semibold mb-2">{title}</div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-semibold">{title}</div>
+        <div className="text-sm font-semibold" style={{ color: TEXT }}>
+          {total > 0 ? total : ""}
+        </div>
+      </div>
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
         {pieces.length ? pieces.map((p, i) => (
           <span
@@ -850,8 +865,8 @@ function CapturedRow({ title, pieces }: { title: string; pieces: Piece[] }) {
             style={{
               fontSize: "2.2rem",
               lineHeight: 1,
-              textShadow: p.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
-              WebkitTextStroke: p.color === "white" ? "1px #000" : undefined,
+              textShadow: p.color === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
+              WebkitTextStroke: p.color === "white" ? "0.6px #000" : undefined,
               color: p.color === "white" ? "#ffffff" : "#000000",
             }}
           >
@@ -890,6 +905,7 @@ function FifthColumnCard({
   canReveal,
   isSecretRevealed,
   onReveal,
+  compact,
 }: {
   revealed: boolean;
   info: {
@@ -902,6 +918,7 @@ function FifthColumnCard({
   canReveal: boolean;
   isSecretRevealed: boolean;
   onReveal: () => void;
+  compact?: boolean;
 }) {
   const displayPiece = info?.piece || info?.originalPiece || null;
 
@@ -913,7 +930,7 @@ function FifthColumnCard({
         onMouseLeave={() => {
           if (revealed) onHide();
         }}
-        className="w-[170px] h-[250px] rounded-[18px] border overflow-hidden transition-transform duration-150 hover:scale-[1.02] shadow-lg"
+        className={`${compact ? "w-[104px] h-[150px]" : "w-[170px] h-[250px]"} rounded-[18px] border overflow-hidden transition-transform duration-150 hover:scale-[1.02] shadow-lg`}
         style={{ background: PANEL_2, borderColor: BORDER, color: TEXT }}
       >
         {!revealed && (
@@ -931,15 +948,15 @@ function FifthColumnCard({
         )}
 
         {revealed && info && (
-          <div className="h-full p-4 flex flex-col items-center justify-center text-center" style={{ background: "#ffffff" }}>
+          <div className={`${compact ? "p-2" : "p-4"} h-full flex flex-col items-center justify-center text-center`} style={{ background: "#ffffff" }}>
             <div className="text-[10px] font-normal uppercase tracking-[0.12em]" style={{ color: "#000000", opacity: 0.8 }}>
               {isSecretRevealed ? (info.piece ? "Revealed" : "Removed") : "Hidden"}
             </div>
-            <div className="mt-3 flex-1 flex items-center justify-center">
+            <div className="mt-2 flex-1 flex items-center justify-center min-h-0">
               {displayPiece ? (
                 <div
                   style={{
-                    fontSize: "5.2rem",
+                    fontSize: compact ? "3.2rem" : "5.2rem",
                     fontFamily: "Segoe UI Symbol, Noto Sans Symbols, serif",
                     lineHeight: 1,
                     textShadow: displayPiece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
@@ -954,16 +971,16 @@ function FifthColumnCard({
                 <div className="text-xs opacity-70 px-2">Unknown</div>
               )}
             </div>
-            <div className="text-sm font-semibold">{info.secret.initialSquare}</div>
+            <div className={`${compact ? "text-[11px]" : "text-sm"} font-semibold`}>{info.secret.initialSquare}</div>
             {!isSecretRevealed && canReveal && (
-              <div className="mt-3">
+              <div className="mt-2">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onReveal();
                   }}
-                  className="px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+                  className={`${compact ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-xs"} rounded-xl cursor-pointer`}
                   style={{ background: "#ffffff", color: "#000000", border: "1px solid #000000" }}
                 >
                   Reveal fifth column
@@ -1105,35 +1122,38 @@ export default function App() {
                 <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2, color: TEXT }}>
                   Flip Board
                 </button>
-                <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
-                  Rules & Info
-                </button>
               </div>
               <div className="mt-4 text-sm opacity-80">Turn: <span className="font-semibold capitalize">{state.turn}</span></div>
               <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
                 {state.result || state.status}
               </div>
+
+              <div className="mt-3">
+                <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
+                  Rules & Info
+                </button>
               </div>
+            </div>
 
             <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-lg font-semibold">Computer opponent</div>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Mode</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: "#ffffff", border: `1px solid ${BORDER}`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
                   <option value="human">Human vs Human</option>
                   <option value="cpu">Human vs Computer</option>
                 </select>
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Computer plays</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: "#ffffff", border: `1px solid ${BORDER}`, color: TEXT }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
                   <option value="white">White</option>
                   <option value="black">Black</option>
                 </select>
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Level</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: "#ffffff", border: `1px solid ${BORDER}`, color: TEXT }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
                   <option value="Hard">Hard</option>
@@ -1199,29 +1219,62 @@ export default function App() {
           <div className="space-y-4">
             <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-lg font-semibold">Fifth column</div>
-              <FifthColumnCard
-                revealed={state.peek === peekSide}
-                info={visibleIntel ? { secret: visibleIntel.secret, piece: visibleIntel.piece, originalPiece: visibleIntel.originalPiece } : null}
-                onToggle={() => setState((s) => ({ ...s, peek: s.peek === peekSide ? "none" : peekSide }))}
-                onHide={() => setState((s) => ({ ...s, peek: "none" }))}
-                canReveal={canReveal}
-                isSecretRevealed={state.secrets[peekSide].revealed}
-                onReveal={handleReveal}
-              />
+              {state.mode === "human" ? (
+                <div className="flex justify-center gap-3 px-3 py-1">
+                  {(["white", "black"] as Color[]).map((side) => {
+                    const sideSecret = state.secrets[side];
+                    const currentSquare = (Object.keys(state.board) as Square[]).find((sq) => state.board[sq]?.id === sideSecret.pieceId) || null;
+                    const sidePiece = currentSquare ? state.board[currentSquare] : null;
+                    const originalPiece = sidePiece || {
+                      id: sideSecret.pieceId,
+                      type: sideSecret.pieceId.split("-")[1] as PieceType,
+                      color: side,
+                      moved: true,
+                    };
+
+                    return (
+                      <div key={`wrap-${side}`} className="flex flex-col items-center gap-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "#000", opacity: 0.7 }}>
+                          {side}
+                        </div>
+                        <FifthColumnCard
+                          revealed={state.peek === side}
+                          info={{ secret: sideSecret, piece: sidePiece, originalPiece }}
+                          onToggle={() => setState((s) => ({ ...s, peek: s.peek === side ? "none" : side }))}
+                          onHide={() => setState((s) => ({ ...s, peek: "none" }))}
+                          canReveal={!state.winner && !state.pendingPromotion && !sideSecret.revealed && state.turn === side}
+                          isSecretRevealed={sideSecret.revealed}
+                          onReveal={() => {
+                            if (state.turn === side) handleReveal();
+                          }}
+                          compact
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <FifthColumnCard
+                  revealed={state.peek === peekSide}
+                  info={visibleIntel ? { secret: visibleIntel.secret, piece: visibleIntel.piece, originalPiece: visibleIntel.originalPiece } : null}
+                  onToggle={() => setState((s) => ({ ...s, peek: s.peek === peekSide ? "none" : peekSide }))}
+                  onHide={() => setState((s) => ({ ...s, peek: "none" }))}
+                  canReveal={canReveal}
+                  isSecretRevealed={state.secrets[peekSide].revealed}
+                  onReveal={handleReveal}
+                />
+              )}
             </div>
 
-<div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
-  <div className="text-lg font-semibold mb-3">Variant summary</div>
-  <div className="text-sm space-y-2 opacity-90">
-        <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, or knight on the opponent's side.</p>
-
-    <p>On your turn, you may reveal that piece instead of moving. It flips color and joins your side.</p>
-
-    <p>Before the fifth column in one's side is revealed, the player may self-capture their own non-king, non-queen pieces in an episode of paranoia.</p>
-
-    <p>All the rest is like the classical chess.</p>
-  </div>
-</div>
+            <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
+              <div className="text-lg font-semibold mb-3">Variant summary</div>
+              <div className="text-sm space-y-2 opacity-90">
+                <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, or knight on the opponent's side.</p>
+                <p>On your turn, you may reveal that piece instead of moving. It flips color and joins your side.</p>
+                <p>Before the fifth column in one's side is revealed, the player may self-capture their own non-king, non-queen pieces in an episode of paranoia.</p>
+                <p>All the rest is like the classical chess.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
