@@ -78,6 +78,7 @@ const coords = (sq: Square) => ({
   r: Number(sq[1]),
 });
 const inBounds = (f: number, r: number) => f >= 0 && f < 8 && r >= 1 && r <= 8;
+const originalColorFromPieceId = (pieceId: string): Color => (pieceId.startsWith("w-") ? "white" : "black");
 
 function cloneBoard(board: Record<Square, Piece | null>) {
   const out = {} as Record<Square, Piece | null>;
@@ -391,7 +392,8 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
   }
 
   if (target) {
-    next.quietus[target.color].push({ ...target });
+    const quietusColor = originalColorFromPieceId(target.id);
+    next.quietus[quietusColor].push({ ...target });
     const enemyBeneficiary = other(target.color);
     const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
     next.status = move.kind === "selfCapture"
@@ -780,6 +782,39 @@ function runSelfTests() {
   const epDone = applyMove(epMid, { from: "e5", to: "d6", kind: "move" });
   assert(!epDone.board["d5"] && epDone.board["d6"]?.color === "white", "en passant removes captured pawn");
 
+  const captureBoard = {} as Record<Square, Piece | null>;
+  for (const file of FILES) for (const rank of RANKS_ASC) captureBoard[`${file}${rank}` as Square] = null;
+  captureBoard["e1"] = { id: "w-K-test", type: "K", color: "white", moved: false };
+  captureBoard["e8"] = { id: "b-K-test", type: "K", color: "black", moved: false };
+  captureBoard["d4"] = { id: "w-B-secret", type: "B", color: "black", moved: true };
+  captureBoard["c3"] = { id: "b-N-captor", type: "N", color: "black", moved: true };
+  const captureState: State = {
+    ...initialState(),
+    board: captureBoard,
+    turn: "black",
+    quietus: { white: [], black: [] },
+    secrets: {
+      white: { pieceId: "b-P-x", revealed: false, initialSquare: "a7" },
+      black: { pieceId: "w-B-secret", revealed: true, initialSquare: "d4" },
+    },
+    peek: "none",
+    pendingPromotion: null,
+    enPassantTarget: null,
+    winner: null,
+    result: null,
+    status: "",
+    selected: null,
+    showRules: false,
+    mode: "human",
+    cpuColor: "black",
+    difficulty: "Easy",
+    lastMove: null,
+    flipped: false,
+  };
+  const capturedFifthColumn = applyMove(captureState, { from: "c3", to: "d4", kind: "move" });
+  assert(capturedFifthColumn.quietus.white.some((p) => p.id === "w-B-secret"), "captured fifth-column piece goes to quietus of its initial color");
+  assert(!capturedFifthColumn.quietus.black.some((p) => p.id === "w-B-secret"), "captured fifth-column piece does not go to quietus of its revealed color");
+
   const hvhState = initialState();
   assert(hvhState.mode === "cpu", "initial mode remains cpu by default");
   assert(createSecrets(board).white.initialSquare !== createSecrets(board).black.initialSquare || true, "secret generation is stable");
@@ -846,7 +881,7 @@ function SquareView({
   );
 }
 
-function CapturedRow({ title, pieces, score }: { title: string; pieces: Piece[]; score?: number }) {
+function CapturedRow({ title, pieces, score, fifthColumnPieceIds }: { title: string; pieces: Piece[]; score?: number; fifthColumnPieceIds?: string[] }) {
   const valueMap: Record<PieceType, number> = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
   const total = pieces.reduce((sum, p) => sum + valueMap[p.type], 0);
 
@@ -859,20 +894,31 @@ function CapturedRow({ title, pieces, score }: { title: string; pieces: Piece[];
         </div>
       </div>
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
-        {pieces.length ? pieces.map((p, i) => (
-          <span
-            key={`${p.id}-${i}`}
-            style={{
-              fontSize: "2.2rem",
-              lineHeight: 1,
-              textShadow: p.color === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
-              WebkitTextStroke: p.color === "white" ? "0.6px #000" : undefined,
-              color: p.color === "white" ? "#ffffff" : "#000000",
-            }}
-          >
-            {GLYPHS[p.color][p.type]}
-          </span>
-        )) : <span className="text-sm opacity-60">—</span>}
+        {pieces.length ? pieces.map((p, i) => {
+          const isFifthColumn = !!fifthColumnPieceIds?.includes(p.id);
+          return (
+            <span
+              key={`${p.id}-${i}`}
+              style={isFifthColumn ? {
+                fontSize: "2.2rem",
+                lineHeight: 1,
+                background: "linear-gradient(90deg, #ffffff 0 50%, #000000 50% 100%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+                WebkitTextStroke: "0.6px #000",
+              } : {
+                fontSize: "2.2rem",
+                lineHeight: 1,
+                textShadow: p.color === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
+                WebkitTextStroke: p.color === "white" ? "0.6px #000" : undefined,
+                color: p.color === "white" ? "#ffffff" : "#000000",
+              }}
+            >
+              {GLYPHS[p.color][p.type]}
+            </span>
+          );
+        }) : <span className="text-sm opacity-60">—</span>}
       </div>
     </div>
   );
@@ -950,7 +996,7 @@ function FifthColumnCard({
         {revealed && info && (
           <div className={`${compact ? "p-2" : "p-4"} h-full flex flex-col items-center justify-center text-center`} style={{ background: "#ffffff" }}>
             <div className="text-[10px] font-normal uppercase tracking-[0.12em]" style={{ color: "#000000", opacity: 0.8 }}>
-              {isSecretRevealed ? (info.piece ? "Revealed" : "Removed") : "Hidden"}
+              {isSecretRevealed ? (info.piece ? "Revealed" : "Captured") : "Hidden"}
             </div>
             <div className="mt-2 flex-1 flex items-center justify-center min-h-0">
               {displayPiece ? (
@@ -1223,8 +1269,8 @@ export default function App() {
 
   return (
     <>
-      <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} />
-      <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} score={blackScore} />
+      <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
+      <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} score={blackScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
     </>
   );
 })()}
