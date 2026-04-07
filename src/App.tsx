@@ -1276,8 +1276,8 @@ export default function App() {
 
   return (
     <>
-      <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
       <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} score={blackScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
+      <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
     </>
   );
 })()}
