@@ -643,7 +643,6 @@ function createCpuWorker() {
     const keyOf = (f, r) => FILES[f] + r;
     const coords = (sq) => ({ f: FILES.indexOf(sq[0]), r: Number(sq[1]) });
     const inBounds = (f, r) => f >= 0 && f < 8 && r >= 1 && r <= 8;
-    const canBePurgedTarget = (piece) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N");
     const cloneBoard = (board) => {
       const out = {};
       for (const file of FILES) {
@@ -814,8 +813,8 @@ function createCpuWorker() {
         const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
         next.status = move.kind === "selfCapture"
           ? wasHiddenEnemyAsset
-            ? state.turn + " purged their own piece on " + move.to + ". It was the opponent's fifth column."
-            : state.turn + " purged their own piece on " + move.to + "."
+            ? state.turn + " captured their own piece on " + move.to + ". It was the opponent's fifth column."
+            : state.turn + " captured their own piece on " + move.to + "."
           : state.turn + " captured on " + move.to + ".";
       }
       const movedPiece = { ...piece, moved: true };
@@ -1369,20 +1368,6 @@ export default function App() {
     }
 
     if (state.board[sq]?.color === state.turn) {
-      const targetPiece = state.board[sq];
-      if (state.selected !== sq && targetPiece) {
-        const selfCaptureMoves = legalMoves(state, state.turn).filter((m) => m.kind === "selfCapture" && m.from === state.selected && m.to === sq);
-        if (!selfCaptureMoves.length) {
-          if (state.secrets[other(state.turn)].revealed) {
-            setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
-            return;
-          }
-          if (!canBePurgedTarget(targetPiece)) {
-            setState((s) => ({ ...s, status: "Only possible fifth-column pieces can be purged: pawns, bishops, and knights." }));
-            return;
-          }
-        }
-      }
       setState((s) => ({ ...s, selected: sq }));
       return;
     }
@@ -1422,11 +1407,8 @@ export default function App() {
     const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === from && m.to === sq);
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn) {
-        const targetPiece = state.board[sq];
         if (state.secrets[other(state.turn)].revealed) {
           setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
-        } else if (!canBePurgedTarget(targetPiece)) {
-          setState((s) => ({ ...s, status: "Only possible fifth-column pieces can be purged: pawns, bishops, and knights." }));
         } else {
           setState((s) => ({ ...s, selected: sq }));
         }
@@ -1487,6 +1469,8 @@ export default function App() {
                 <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
                   Rules & Info
                 </button>
+
+                
               </div>
             </div>
 
@@ -1517,6 +1501,29 @@ export default function App() {
               </label>
               {thinking && <div className="text-xs tracking-[0.18em] uppercase" style={{ color: ACCENT }}>thinking…</div>}
             </div>
+
+            <div style={{ marginTop: "6px" }}>
+            <div style={{ fontSize: "14px", letterSpacing: "0.06em", marginBottom: "4px", color: ACCENT, fontWeight: 500 }}>
+              Other Yanevi's Variants
+            </div>
+            <a
+              href="https://www.kafkachess.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Other Yanevi's Variants"
+              className="flex items-center gap-3 px-1 py-1 transition-opacity hover:opacity-80"
+              style={{ color: TEXT, textDecoration: "none" }}
+            >
+              <img
+                src="/mnt/data/cover-bmac.png"
+                alt="Kafka Chess"
+                style={{ width: "32px", height: "32px", objectFit: "contain" }}
+              />
+              <span style={{ fontSize: "12.5px", opacity: 0.85 }}>
+                Kafka Chess (pieces transform based on the square they step on)
+              </span>
+            </a>
+          </div>
           </div>
 
           <div className="space-y-4">
