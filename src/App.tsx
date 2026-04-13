@@ -644,6 +644,7 @@ function createCpuWorker() {
     const keyOf = (f, r) => FILES[f] + r;
     const coords = (sq) => ({ f: FILES.indexOf(sq[0]), r: Number(sq[1]) });
     const inBounds = (f, r) => f >= 0 && f < 8 && r >= 1 && r <= 8;
+    const canBePurgedTarget = (piece) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N");
     const cloneBoard = (board) => {
       const out = {};
       for (const file of FILES) {
@@ -687,8 +688,9 @@ function createCpuWorker() {
         while (inBounds(nf, nr)) {
           const to = keyOf(nf, nr);
           const hit = board[to];
-          if (!hit) out.push({ from, to, kind: "move" });
-          else {
+          if (!hit) {
+            out.push({ from, to, kind: "move" });
+          } else {
             if (hit.color !== color) out.push({ from, to, kind: "move" });
             else if (allowSelf && canBePurgedTarget(hit)) out.push({ from, to, kind: "selfCapture" });
             break;
@@ -699,6 +701,7 @@ function createCpuWorker() {
       }
       return out;
     };
+    const squareAttacked = (state, target, by) => pseudoMoves(state, by, false, true).some((m) => m.to === target);
     const pseudoMoves = (state, color, allowSelf = false, forAttackOnly = false) => {
       const board = state.board;
       const out = [];
@@ -723,7 +726,7 @@ function createCpuWorker() {
             const hit = board[to];
             if (forAttackOnly) { out.push({ from: sq, to, kind: "move" }); continue; }
             if (hit && hit.color !== color) { out.push({ from: sq, to, kind: "move" }); continue; }
-            if (allowSelf && hit && hit.color === color && hit.type !== "Q" && hit.type !== "K") { out.push({ from: sq, to, kind: "selfCapture" }); continue; }
+            if (allowSelf && hit && hit.color === color && canBePurgedTarget(hit)) { out.push({ from: sq, to, kind: "selfCapture" }); continue; }
             if (!hit && state.enPassantTarget === to) {
               const capturedSq = keyOf(nf, r);
               const captured = board[capturedSq];
@@ -749,12 +752,17 @@ function createCpuWorker() {
         if (p.type === "R") { out.push(...rayMoves(board, sq, color, [[1,0],[-1,0],[0,1],[0,-1]], allowSelf)); continue; }
         if (p.type === "Q") { out.push(...rayMoves(board, sq, color, [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]], allowSelf)); continue; }
         if (p.type === "K") {
-          for (let df = -1; df <= 1; df++) for (let dr = -1; dr <= 1; dr++) {
-            if (!df && !dr) continue;
-            const nf = f + df; const nr = r + dr;
-            if (!inBounds(nf, nr)) continue;
-            const to = keyOf(nf, nr); const hit = board[to];
-            if (!hit || hit.color !== color) out.push({ from: sq, to, kind: "move" });
+          for (let df = -1; df <= 1; df++) {
+            for (let dr = -1; dr <= 1; dr++) {
+              if (!df && !dr) continue;
+              const nf = f + df;
+              const nr = r + dr;
+              if (!inBounds(nf, nr)) continue;
+              const to = keyOf(nf, nr);
+              const hit = board[to];
+              if (!hit || hit.color !== color) out.push({ from: sq, to, kind: "move" });
+              else if (allowSelf && canBePurgedTarget(hit)) out.push({ from: sq, to, kind: "selfCapture" });
+            }
           }
           if (!forAttackOnly && !p.moved) {
             const enemy = other(color);
@@ -762,18 +770,21 @@ function createCpuWorker() {
             if (r === homeRank && !squareAttacked(state, sq, enemy)) {
               const kingSide = [keyOf(f + 1, r), keyOf(f + 2, r)];
               const kingRook = board[getCastlingRookSquares(color, "king").rookFrom];
-              if (kingRook && kingRook.type === "R" && kingRook.color === color && !kingRook.moved && kingSide.every((s) => !board[s]) && !squareAttacked(state, kingSide[0], enemy) && !squareAttacked(state, kingSide[1], enemy)) out.push({ from: sq, to: kingSide[1], kind: "move" });
+              if (kingRook && kingRook.type === "R" && kingRook.color === color && !kingRook.moved && kingSide.every((s) => !board[s]) && !squareAttacked(state, kingSide[0], enemy) && !squareAttacked(state, kingSide[1], enemy)) {
+                out.push({ from: sq, to: kingSide[1], kind: "move" });
+              }
               const queenBetween = [keyOf(f - 1, r), keyOf(f - 2, r), keyOf(f - 3, r)];
               const queenTraverse = [keyOf(f - 1, r), keyOf(f - 2, r)];
               const queenRook = board[getCastlingRookSquares(color, "queen").rookFrom];
-              if (queenRook && queenRook.type === "R" && queenRook.color === color && !queenRook.moved && queenBetween.every((s) => !board[s]) && !squareAttacked(state, queenTraverse[0], enemy) && !squareAttacked(state, queenTraverse[1], enemy)) out.push({ from: sq, to: queenTraverse[1], kind: "move" });
+              if (queenRook && queenRook.type === "R" && queenRook.color === color && !queenRook.moved && queenBetween.every((s) => !board[s]) && !squareAttacked(state, queenTraverse[0], enemy) && !squareAttacked(state, queenTraverse[1], enemy)) {
+                out.push({ from: sq, to: queenTraverse[1], kind: "move" });
+              }
             }
           }
         }
       }
       return out;
     };
-    const squareAttacked = (state, target, by) => pseudoMoves(state, by, false, true).some((m) => m.to === target);
     const simulateMoveNoFinalize = (state, move) => {
       const next = cloneState(state);
       next.selected = null;
@@ -814,8 +825,8 @@ function createCpuWorker() {
         const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
         next.status = move.kind === "selfCapture"
           ? wasHiddenEnemyAsset
-            ? state.turn + " captured their own piece on " + move.to + ". It was the opponent's fifth column."
-            : state.turn + " captured their own piece on " + move.to + "."
+            ? state.turn + " purged their own piece on " + move.to + ". It was the opponent's fifth column."
+            : state.turn + " purged their own piece on " + move.to + "."
           : state.turn + " captured on " + move.to + ".";
       }
       const movedPiece = { ...piece, moved: true };
@@ -1024,6 +1035,13 @@ function runSelfTests() {
   const cpuPeekState: State = { ...initialState(), mode: "cpu", cpuColor: "black" };
   const maskedCpuView = perspectiveStateForCpu(cpuPeekState);
   assert(maskedCpuView.secrets.white.pieceId === "__hidden__", "cpu view masks the human hidden fifth column");
+
+  assert(canBePurgedTarget({ id: "x1", type: "P", color: "white", moved: false }), "pawn can be purged");
+  assert(canBePurgedTarget({ id: "x2", type: "B", color: "white", moved: false }), "bishop can be purged");
+  assert(canBePurgedTarget({ id: "x3", type: "N", color: "white", moved: false }), "knight can be purged");
+  assert(!canBePurgedTarget({ id: "x4", type: "Q", color: "white", moved: false }), "queen cannot be purged");
+  assert(!canBePurgedTarget({ id: "x5", type: "K", color: "white", moved: false }), "king cannot be purged");
+  assert(!canBePurgedTarget({ id: "x6", type: "R", color: "white", moved: false }), "rook cannot be purged");
 
   const captureBoard = {} as Record<Square, Piece | null>;
   for (const file of FILES) for (const rank of RANKS_ASC) captureBoard[`${file}${rank}` as Square] = null;
@@ -1469,14 +1487,8 @@ export default function App() {
                   Flip Board
                 </button>
               </div>
-              <div className={thinking ? "mt-4 text-sm opacity-80 animate-pulse" : "mt-4 text-sm opacity-80"}>
-                {thinking ? (
-                  <span className="font-semibold" style={{ letterSpacing: "0.22em" }}>t h i n k i n g ...</span>
-                ) : (
-                  <>
-                    Turn: <span className="font-semibold capitalize">{state.turn}</span>
-                  </>
-                )}
+              <div className="mt-4 text-sm opacity-80">
+                Turn: <span className="font-semibold capitalize">{state.turn}</span>
               </div>
               <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
                 {state.result || state.status}
@@ -1485,8 +1497,6 @@ export default function App() {
                 <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
                   Rules & Info
                 </button>
-
-                
               </div>
             </div>
 
@@ -1516,34 +1526,34 @@ export default function App() {
                 </select>
               </label>
               {thinking && (
-                <div className="text-xs animate-pulse" style={{ color: ACCENT, letterSpacing: "0.22em" }}>
+                <div className="text-xs" style={{ color: ACCENT, letterSpacing: "0.22em" }}>
                   t h i n k i n g ...
                 </div>
               )}
             </div>
 
             <div style={{ marginTop: "16px" }}>
-            <div style={{ fontSize: "14px", letterSpacing: "0.06em", marginBottom: "4px", color: ACCENT, fontWeight: 500 }}>
-              Other Yanevi's Variants
+              <div style={{ fontSize: "14px", letterSpacing: "0.06em", marginBottom: "4px", color: ACCENT, fontWeight: 500 }}>
+                Other Yanevi's Variants
+              </div>
+              <a
+                href="https://www.kafkachess.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Other Yanevi's Variants"
+                className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors duration-200 hover:bg-[rgba(176,122,82,0.12)]"
+                style={{ color: TEXT, textDecoration: "none" }}
+              >
+                <img
+                  src="/cover-bmac.png"
+                  alt="Kafka Chess"
+                  style={{ width: "32px", height: "32px", objectFit: "contain" }}
+                />
+                <span style={{ fontSize: "12.5px", opacity: 0.85 }}>
+                  Kafka Chess (pieces transform based on the square they step on)
+                </span>
+              </a>
             </div>
-            <a
-              href="https://www.kafkachess.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Other Yanevi's Variants"
-              className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors duration-200 hover:bg-[rgba(176,122,82,0.12)]"
-              style={{ color: TEXT, textDecoration: "none" }}
-            >
-              <img
-                src="/cover-bmac.png"
-                alt="Kafka Chess"
-                style={{ width: "32px", height: "32px", objectFit: "contain" }}
-              />
-              <span style={{ fontSize: "12.5px", opacity: 0.85 }}>
-                Kafka Chess (pieces transform based on the square they step on)
-              </span>
-            </a>
-          </div>
           </div>
 
           <div className="space-y-4">
