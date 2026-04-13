@@ -91,6 +91,7 @@ const coords = (sq: Square) => ({
 });
 const inBounds = (f: number, r: number) => f >= 0 && f < 8 && r >= 1 && r <= 8;
 const originalColorFromPieceId = (pieceId: string): Color => (pieceId.startsWith("w-") ? "white" : "black");
+const canBePurgedTarget = (piece: Piece | null) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N");
 
 function cloneBoard(board: Record<Square, Piece | null>) {
   const out = {} as Record<Square, Piece | null>;
@@ -224,7 +225,7 @@ function rayMoves(board: Record<Square, Piece | null>, from: Square, color: Colo
         out.push({ from, to, kind: "move" });
       } else {
         if (hit.color !== color) out.push({ from, to, kind: "move" });
-        else if (allowSelf && hit.type !== "Q" && hit.type !== "K") out.push({ from, to, kind: "selfCapture" });
+        else if (allowSelf && canBePurgedTarget(hit)) out.push({ from, to, kind: "selfCapture" });
         break;
       }
       nf += df;
@@ -272,7 +273,7 @@ function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnl
           out.push({ from: sq, to, kind: "move" });
           continue;
         }
-        if (allowSelf && hit && hit.color === color && hit.type !== "Q" && hit.type !== "K") {
+        if (allowSelf && hit && hit.color === color && canBePurgedTarget(hit)) {
           out.push({ from: sq, to, kind: "selfCapture" });
           continue;
         }
@@ -296,7 +297,7 @@ function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnl
         const to = keyOf(nf, nr);
         const hit = board[to];
         if (!hit || hit.color !== color) out.push({ from: sq, to, kind: "move" });
-        else if (allowSelf && hit.type !== "Q" && hit.type !== "K") out.push({ from: sq, to, kind: "selfCapture" });
+        else if (allowSelf && canBePurgedTarget(hit)) out.push({ from: sq, to, kind: "selfCapture" });
       }
       continue;
     }
@@ -324,6 +325,7 @@ function pseudoMoves(state: State, color: Color, allowSelf = false, forAttackOnl
           const to = keyOf(nf, nr);
           const hit = board[to];
           if (!hit || hit.color !== color) out.push({ from: sq, to, kind: "move" });
+          else if (allowSelf && canBePurgedTarget(hit)) out.push({ from: sq, to, kind: "selfCapture" });
         }
       }
 
@@ -410,8 +412,8 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
     const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
     next.status = move.kind === "selfCapture"
       ? wasHiddenEnemyAsset
-        ? `${state.turn} captured their own piece on ${move.to}. It was the opponent's fifth column.`
-        : `${state.turn} captured their own piece on ${move.to}.`
+        ? `${state.turn} purged their own piece on ${move.to}. It was the opponent's fifth column.`
+        : `${state.turn} purged their own piece on ${move.to}.`
       : `${state.turn} captured on ${move.to}.`;
   }
 
@@ -641,6 +643,7 @@ function createCpuWorker() {
     const keyOf = (f, r) => FILES[f] + r;
     const coords = (sq) => ({ f: FILES.indexOf(sq[0]), r: Number(sq[1]) });
     const inBounds = (f, r) => f >= 0 && f < 8 && r >= 1 && r <= 8;
+    const canBePurgedTarget = (piece) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N");
     const cloneBoard = (board) => {
       const out = {};
       for (const file of FILES) {
@@ -687,7 +690,7 @@ function createCpuWorker() {
           if (!hit) out.push({ from, to, kind: "move" });
           else {
             if (hit.color !== color) out.push({ from, to, kind: "move" });
-            else if (allowSelf && hit.type !== "Q" && hit.type !== "K") out.push({ from, to, kind: "selfCapture" });
+            else if (allowSelf && canBePurgedTarget(hit)) out.push({ from, to, kind: "selfCapture" });
             break;
           }
           nf += df;
@@ -738,7 +741,7 @@ function createCpuWorker() {
             const to = keyOf(nf, nr);
             const hit = board[to];
             if (!hit || hit.color !== color) out.push({ from: sq, to, kind: "move" });
-            else if (allowSelf && hit.type !== "Q" && hit.type !== "K") out.push({ from: sq, to, kind: "selfCapture" });
+            else if (allowSelf && canBePurgedTarget(hit)) out.push({ from: sq, to, kind: "selfCapture" });
           }
           continue;
         }
@@ -811,8 +814,8 @@ function createCpuWorker() {
         const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
         next.status = move.kind === "selfCapture"
           ? wasHiddenEnemyAsset
-            ? state.turn + " captured their own piece on " + move.to + ". It was the opponent's fifth column."
-            : state.turn + " captured their own piece on " + move.to + "."
+            ? state.turn + " purged their own piece on " + move.to + ". It was the opponent's fifth column."
+            : state.turn + " purged their own piece on " + move.to + "."
           : state.turn + " captured on " + move.to + ".";
       }
       const movedPiece = { ...piece, moved: true };
@@ -1366,6 +1369,20 @@ export default function App() {
     }
 
     if (state.board[sq]?.color === state.turn) {
+      const targetPiece = state.board[sq];
+      if (state.selected !== sq && targetPiece) {
+        const selfCaptureMoves = legalMoves(state, state.turn).filter((m) => m.kind === "selfCapture" && m.from === state.selected && m.to === sq);
+        if (!selfCaptureMoves.length) {
+          if (state.secrets[other(state.turn)].revealed) {
+            setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
+            return;
+          }
+          if (!canBePurgedTarget(targetPiece)) {
+            setState((s) => ({ ...s, status: "Only possible fifth-column pieces can be purged: pawns, bishops, and knights." }));
+            return;
+          }
+        }
+      }
       setState((s) => ({ ...s, selected: sq }));
       return;
     }
@@ -1373,7 +1390,7 @@ export default function App() {
     const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq);
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn && state.secrets[other(state.turn)].revealed) {
-        setState((s) => ({ ...s, status: "You can no longer capture your own pieces after your fifth column has been revealed." }));
+        setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
       }
       return;
     }
@@ -1405,8 +1422,11 @@ export default function App() {
     const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === from && m.to === sq);
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn) {
+        const targetPiece = state.board[sq];
         if (state.secrets[other(state.turn)].revealed) {
-          setState((s) => ({ ...s, status: "You can no longer capture your own pieces after your fifth column has been revealed." }));
+          setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
+        } else if (!canBePurgedTarget(targetPiece)) {
+          setState((s) => ({ ...s, status: "Only possible fifth-column pieces can be purged: pawns, bishops, and knights." }));
         } else {
           setState((s) => ({ ...s, selected: sq }));
         }
@@ -1606,7 +1626,7 @@ export default function App() {
               <div className="text-sm space-y-2 opacity-90">
                 <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, or knight on the opponent's side.</p>
                 <p>On your turn, you may reveal that piece instead of moving. It flips color and joins your side.</p>
-                <p>Before the fifth column in one's side is revealed, the player may self-capture their own non-king, non-queen pieces in an episode of paranoia.</p>
+                <p>Before the fifth column in one's side is revealed, the player may purge their own pawns, bishops, and knights in an episode of paranoia.</p>
                 <p>All the rest is like the classical chess.</p>
               </div>
             </div>
@@ -1649,8 +1669,8 @@ export default function App() {
               <p><strong>2.</strong> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the <strong>fifth column</strong>.</p>
               <p><strong>3.</strong> Only the opponent knows which piece it is.</p>
               <p><strong>4.</strong> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
-              <p><strong>5.</strong> Until a side's hidden fifth column is revealed, that host player may self-capture their own non-king / non-queen pieces. No piece may ever be suicided off the board.</p>
-              <p><strong>6.</strong> If a hidden fifth-column piece is self-captured by its host player, the game automatically reports that it was the opponent's fifth column.</p>
+              <p><strong>5.</strong> Until a side's hidden fifth column is revealed, that host player may purge only their own pawns, bishops, and knights, because only those could be the hidden fifth column. No piece may ever be suicided off the board.</p>
+              <p><strong>6.</strong> If a hidden fifth-column piece is purged by its host player, the game automatically reports that it was the opponent's fifth column.</p>
               <p><strong>7.</strong> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
             </div>
           </div>
