@@ -82,6 +82,7 @@ const ACCENT = "#b07a52";
 const PAGE_BG = "#f6f1ea";
 const TEXT = "#3a332c";
 const BORDER = "#d8cfc2";
+const LOGO_SRC = "/logo-paranoia.svg";
 
 const other = (c: Color): Color => (c === "white" ? "black" : "white");
 const keyOf = (f: number, r: number) => `${FILES[f]}${r}` as Square;
@@ -1453,25 +1454,13 @@ export default function App() {
           <div className="space-y-4">
             <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="flex items-center gap-3 mb-3">
-              <img
-                src="/mnt/data/cover-bmac.png"
-                alt="Paranoia Chess"
-                style={{
-                  width: "34px",
-                  height: "34px",
-                  objectFit: "contain",
-                  animation: thinking ? "pulse 1.2s ease-in-out infinite" : "none",
-                }}
-              />
-              <div
-                className="text-xl font-semibold"
-                style={{
-                  animation: thinking ? "pulse 1.2s ease-in-out infinite" : "none",
-                }}
-              >
-                Paranoia Chess
+                <img
+                  src={LOGO_SRC}
+                  alt="Paranoia Chess logo"
+                  className={thinking ? "w-10 h-10 object-contain animate-pulse" : "w-10 h-10 object-contain"}
+                />
+                <div className="text-xl font-semibold">Paranoia Chess</div>
               </div>
-            </div>
               <div className="flex flex-wrap gap-2">
                 <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: "#ffffff", color: TEXT }}>
                   New Game
@@ -1480,7 +1469,15 @@ export default function App() {
                   Flip Board
                 </button>
               </div>
-              <div className="mt-4 text-sm opacity-80">Turn: <span className="font-semibold capitalize">{state.turn}</span></div>
+              <div className={thinking ? "mt-4 text-sm opacity-80 animate-pulse" : "mt-4 text-sm opacity-80"}>
+                {thinking ? (
+                  <span className="font-semibold" style={{ letterSpacing: "0.22em" }}>t h i n k i n g ...</span>
+                ) : (
+                  <>
+                    Turn: <span className="font-semibold capitalize">{state.turn}</span>
+                  </>
+                )}
+              </div>
               <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
                 {state.result || state.status}
               </div>
@@ -1519,20 +1516,13 @@ export default function App() {
                 </select>
               </label>
               {thinking && (
-                <div
-                  className="text-xs"
-                  style={{
-                    color: ACCENT,
-                    letterSpacing: "0.25em",
-                    animation: "pulse 1.2s ease-in-out infinite",
-                  }}
-                >
+                <div className="text-xs animate-pulse" style={{ color: ACCENT, letterSpacing: "0.22em" }}>
                   t h i n k i n g ...
                 </div>
               )}
             </div>
 
-            <div style={{ marginTop: "6px" }}>
+            <div style={{ marginTop: "16px" }}>
             <div style={{ fontSize: "14px", letterSpacing: "0.06em", marginBottom: "4px", color: ACCENT, fontWeight: 500 }}>
               Other Yanevi's Variants
             </div>
@@ -1541,11 +1531,11 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               title="Other Yanevi's Variants"
-              className="flex items-center gap-3 px-1 py-1 transition-opacity hover:opacity-80"
+              className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors duration-200 hover:bg-[rgba(176,122,82,0.12)]"
               style={{ color: TEXT, textDecoration: "none" }}
             >
               <img
-                src="/mnt/data/cover-bmac.png"
+                src="/cover-bmac.png"
                 alt="Kafka Chess"
                 style={{ width: "32px", height: "32px", objectFit: "contain" }}
               />
