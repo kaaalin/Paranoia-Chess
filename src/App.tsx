@@ -1511,7 +1511,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               title="Other Yanevi's Variants"
-              className="flex items-center gap-3 px-1 py-1 transition-opacity hover:opacity-80"
+              className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors duration-200 hover:bg-[rgba(176,122,82,0.12)]"
               style={{ color: TEXT, textDecoration: "none" }}
             >
               <img
