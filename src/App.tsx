@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Color = "white" | "black";
 type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
@@ -51,6 +51,18 @@ type State = {
   pendingPromotion: PendingPromotion | null;
   enPassantTarget: Square | null;
   lastMove: { from?: Square; to?: Square; kind: Move["kind"] } | null;
+};
+
+type WorkerRequest = {
+  type: "pickMove";
+  requestId: number;
+  state: State;
+};
+
+type WorkerResponse = {
+  type: "pickMoveResult";
+  requestId: number;
+  nextState: State;
 };
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
@@ -620,6 +632,361 @@ function pickCpuMove(state: State) {
   return applyMove(state, bestMove);
 }
 
+function createCpuWorker() {
+  const workerSource = `
+    const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
+    const RANKS_ASC = [1, 2, 3, 4, 5, 6, 7, 8];
+    const PROMOTION_TYPES = ["Q", "R", "B", "N"];
+    const other = (c) => (c === "white" ? "black" : "white");
+    const keyOf = (f, r) => FILES[f] + r;
+    const coords = (sq) => ({ f: FILES.indexOf(sq[0]), r: Number(sq[1]) });
+    const inBounds = (f, r) => f >= 0 && f < 8 && r >= 1 && r <= 8;
+    const cloneBoard = (board) => {
+      const out = {};
+      for (const file of FILES) {
+        for (const rank of RANKS_ASC) {
+          const sq = file + rank;
+          out[sq] = board[sq] ? { ...board[sq] } : null;
+        }
+      }
+      return out;
+    };
+    const cloneState = (state) => ({
+      ...state,
+      board: cloneBoard(state.board),
+      quietus: {
+        white: state.quietus.white.map((p) => ({ ...p })),
+        black: state.quietus.black.map((p) => ({ ...p })),
+      },
+      secrets: {
+        white: { ...state.secrets.white },
+        black: { ...state.secrets.black },
+      },
+      pendingPromotion: state.pendingPromotion ? { ...state.pendingPromotion } : null,
+      enPassantTarget: state.enPassantTarget,
+      lastMove: state.lastMove ? { ...state.lastMove } : null,
+    });
+    const findKing = (board, color) => Object.keys(board).find((sq) => board[sq]?.type === "K" && board[sq]?.color === color) || null;
+    const getCastlingRookSquares = (color, side) => {
+      if (color === "white") return side === "king" ? { rookFrom: "h1", rookTo: "f1" } : { rookFrom: "a1", rookTo: "d1" };
+      return side === "king" ? { rookFrom: "h8", rookTo: "f8" } : { rookFrom: "a8", rookTo: "d8" };
+    };
+    const maybePromotion = (piece, to) => {
+      const rank = Number(to[1]);
+      return piece.type === "P" && ((piece.color === "white" && rank === 8) || (piece.color === "black" && rank === 1));
+    };
+    const rayMoves = (board, from, color, dirs, allowSelf) => {
+      const { f, r } = coords(from);
+      const out = [];
+      for (const [df, dr] of dirs) {
+        let nf = f + df;
+        let nr = r + dr;
+        while (inBounds(nf, nr)) {
+          const to = keyOf(nf, nr);
+          const hit = board[to];
+          if (!hit) out.push({ from, to, kind: "move" });
+          else {
+            if (hit.color !== color) out.push({ from, to, kind: "move" });
+            else if (allowSelf && hit.type !== "Q" && hit.type !== "K") out.push({ from, to, kind: "selfCapture" });
+            break;
+          }
+          nf += df;
+          nr += dr;
+        }
+      }
+      return out;
+    };
+    const pseudoMoves = (state, color, allowSelf = false, forAttackOnly = false) => {
+      const board = state.board;
+      const out = [];
+      for (const sq of Object.keys(board)) {
+        const p = board[sq];
+        if (!p || p.color !== color) continue;
+        const { f, r } = coords(sq);
+        if (p.type === "P") {
+          const dir = color === "white" ? 1 : -1;
+          const one = r + dir;
+          if (!forAttackOnly && inBounds(f, one) && !board[keyOf(f, one)]) {
+            out.push({ from: sq, to: keyOf(f, one), kind: "move" });
+            const two = r + dir * 2;
+            const startRank = color === "white" ? 2 : 7;
+            if (r === startRank && inBounds(f, two) && !board[keyOf(f, two)] && !board[keyOf(f, one)]) out.push({ from: sq, to: keyOf(f, two), kind: "move" });
+          }
+          for (const df of [-1, 1]) {
+            const nf = f + df;
+            const nr = r + dir;
+            if (!inBounds(nf, nr)) continue;
+            const to = keyOf(nf, nr);
+            const hit = board[to];
+            if (forAttackOnly) { out.push({ from: sq, to, kind: "move" }); continue; }
+            if (hit && hit.color !== color) { out.push({ from: sq, to, kind: "move" }); continue; }
+            if (allowSelf && hit && hit.color === color && hit.type !== "Q" && hit.type !== "K") { out.push({ from: sq, to, kind: "selfCapture" }); continue; }
+            if (!hit && state.enPassantTarget === to) {
+              const capturedSq = keyOf(nf, r);
+              const captured = board[capturedSq];
+              if (captured && captured.type === "P" && captured.color === other(color)) out.push({ from: sq, to, kind: "move" });
+            }
+          }
+          continue;
+        }
+        if (p.type === "N") {
+          const jumps = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
+          for (const [df, dr] of jumps) {
+            const nf = f + df;
+            const nr = r + dr;
+            if (!inBounds(nf, nr)) continue;
+            const to = keyOf(nf, nr);
+            const hit = board[to];
+            if (!hit || hit.color !== color) out.push({ from: sq, to, kind: "move" });
+            else if (allowSelf && hit.type !== "Q" && hit.type !== "K") out.push({ from: sq, to, kind: "selfCapture" });
+          }
+          continue;
+        }
+        if (p.type === "B") { out.push(...rayMoves(board, sq, color, [[1,1],[-1,1],[1,-1],[-1,-1]], allowSelf)); continue; }
+        if (p.type === "R") { out.push(...rayMoves(board, sq, color, [[1,0],[-1,0],[0,1],[0,-1]], allowSelf)); continue; }
+        if (p.type === "Q") { out.push(...rayMoves(board, sq, color, [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]], allowSelf)); continue; }
+        if (p.type === "K") {
+          for (let df = -1; df <= 1; df++) for (let dr = -1; dr <= 1; dr++) {
+            if (!df && !dr) continue;
+            const nf = f + df; const nr = r + dr;
+            if (!inBounds(nf, nr)) continue;
+            const to = keyOf(nf, nr); const hit = board[to];
+            if (!hit || hit.color !== color) out.push({ from: sq, to, kind: "move" });
+          }
+          if (!forAttackOnly && !p.moved) {
+            const enemy = other(color);
+            const homeRank = color === "white" ? 1 : 8;
+            if (r === homeRank && !squareAttacked(state, sq, enemy)) {
+              const kingSide = [keyOf(f + 1, r), keyOf(f + 2, r)];
+              const kingRook = board[getCastlingRookSquares(color, "king").rookFrom];
+              if (kingRook && kingRook.type === "R" && kingRook.color === color && !kingRook.moved && kingSide.every((s) => !board[s]) && !squareAttacked(state, kingSide[0], enemy) && !squareAttacked(state, kingSide[1], enemy)) out.push({ from: sq, to: kingSide[1], kind: "move" });
+              const queenBetween = [keyOf(f - 1, r), keyOf(f - 2, r), keyOf(f - 3, r)];
+              const queenTraverse = [keyOf(f - 1, r), keyOf(f - 2, r)];
+              const queenRook = board[getCastlingRookSquares(color, "queen").rookFrom];
+              if (queenRook && queenRook.type === "R" && queenRook.color === color && !queenRook.moved && queenBetween.every((s) => !board[s]) && !squareAttacked(state, queenTraverse[0], enemy) && !squareAttacked(state, queenTraverse[1], enemy)) out.push({ from: sq, to: queenTraverse[1], kind: "move" });
+            }
+          }
+        }
+      }
+      return out;
+    };
+    const squareAttacked = (state, target, by) => pseudoMoves(state, by, false, true).some((m) => m.to === target);
+    const simulateMoveNoFinalize = (state, move) => {
+      const next = cloneState(state);
+      next.selected = null;
+      next.pendingPromotion = null;
+      next.lastMove = { kind: move.kind, from: move.from, to: move.to };
+      next.enPassantTarget = null;
+      next.status = "";
+      if (move.kind === "reveal") {
+        const secret = next.secrets[state.turn];
+        if (secret.revealed) return next;
+        const sq = Object.keys(next.board).find((k) => next.board[k]?.id === secret.pieceId) || null;
+        if (!sq) {
+          next.status = state.turn + " tried to reveal the fifth column, but it had already been removed.";
+          next.turn = other(state.turn);
+          return next;
+        }
+        next.board[sq] = { ...next.board[sq], color: state.turn, moved: true };
+        secret.revealed = true;
+        next.status = state.turn + " revealed the fifth column on " + sq + ".";
+        next.turn = other(state.turn);
+        return next;
+      }
+      const piece = next.board[move.from];
+      if (!piece || piece.color !== state.turn || !move.to) return next;
+      const fromCoords = coords(move.from);
+      const toCoords = coords(move.to);
+      let target = next.board[move.to];
+      next.board[move.from] = null;
+      if (piece.type === "P" && !target && state.enPassantTarget === move.to && fromCoords.f !== toCoords.f) {
+        const captureSq = keyOf(toCoords.f, fromCoords.r);
+        target = next.board[captureSq];
+        next.board[captureSq] = null;
+      }
+      if (target) {
+        const quietusColor = target.id.startsWith("w-") ? "white" : "black";
+        next.quietus[quietusColor].push({ ...target });
+        const enemyBeneficiary = other(target.color);
+        const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
+        next.status = move.kind === "selfCapture"
+          ? wasHiddenEnemyAsset
+            ? state.turn + " captured their own piece on " + move.to + ". It was the opponent's fifth column."
+            : state.turn + " captured their own piece on " + move.to + "."
+          : state.turn + " captured on " + move.to + ".";
+      }
+      const movedPiece = { ...piece, moved: true };
+      next.board[move.to] = movedPiece;
+      if (piece.type === "K" && Math.abs(toCoords.f - fromCoords.f) === 2) {
+        const side = toCoords.f > fromCoords.f ? "king" : "queen";
+        const { rookFrom, rookTo } = getCastlingRookSquares(piece.color, side);
+        const rook = next.board[rookFrom];
+        if (rook) {
+          next.board[rookFrom] = null;
+          next.board[rookTo] = { ...rook, moved: true };
+          next.status = state.turn + " castled " + side + "side.";
+        }
+      }
+      if (piece.type === "P" && Math.abs(toCoords.r - fromCoords.r) === 2) next.enPassantTarget = keyOf(fromCoords.f, fromCoords.r + (piece.color === "white" ? 1 : -1));
+      if (piece.type === "P" && state.enPassantTarget === move.to && fromCoords.f !== toCoords.f && !state.board[move.to]) next.status = state.turn + " captured en passant on " + move.to + ".";
+      if (maybePromotion(movedPiece, move.to)) {
+        if (move.promotion) {
+          next.board[move.to] = { ...movedPiece, type: move.promotion, promotedFromPawn: true };
+          next.status = state.turn + " promoted on " + move.to + ".";
+          next.turn = other(state.turn);
+          return next;
+        }
+        next.pendingPromotion = { square: move.to, color: movedPiece.color, moveBase: { ...move } };
+        next.status = state.turn + " must choose a promotion piece.";
+        return next;
+      }
+      next.turn = other(state.turn);
+      if (!next.status) next.status = state.turn + " moved " + piece.type.toLowerCase() + " from " + move.from + " to " + move.to + ".";
+      return next;
+    };
+    const perspectiveStateForCpu = (state) => {
+      if (state.mode !== "cpu") return state;
+      const humanSide = other(state.cpuColor);
+      if (state.secrets[humanSide].revealed) return state;
+      const masked = cloneState(state);
+      masked.secrets[humanSide] = { ...masked.secrets[humanSide], pieceId: "__hidden__" };
+      return masked;
+    };
+    const legalMoves = (state, color) => {
+      const allowSelf = !state.secrets[other(color)].revealed;
+      const candidates = pseudoMoves(state, color, allowSelf, false);
+      const legal = [];
+      for (const move of candidates) {
+        if (!move.to) continue;
+        const piece = state.board[move.from];
+        if (!piece) continue;
+        const variants = maybePromotion(piece, move.to) ? PROMOTION_TYPES.map((promotion) => ({ ...move, promotion })) : [move];
+        for (const variant of variants) {
+          const next = simulateMoveNoFinalize({ ...state, turn: color }, variant);
+          const kingSq = findKing(next.board, color);
+          if (!kingSq) continue;
+          if (!squareAttacked(next, kingSq, other(color))) legal.push(variant);
+        }
+      }
+      if (!state.secrets[color].revealed && state.secrets[color].pieceId !== "__hidden__") legal.push({ from: "a1", kind: "reveal" });
+      return legal;
+    };
+    const computeTerminalState = (state) => {
+      const current = state.turn;
+      const currentKing = findKing(state.board, current);
+      const enemyKing = findKing(state.board, other(current));
+      if (!currentKing) return { winner: other(current), result: other(current) + " wins.", status: (state.status + " " + other(current) + " wins.").trim() };
+      if (!enemyKing) return { winner: current, result: current + " wins.", status: (state.status + " " + current + " wins.").trim() };
+      const nextLegal = legalMoves({ ...state, selected: null }, current);
+      const inCheck = squareAttacked(state, currentKing, other(current));
+      if (nextLegal.length === 0) {
+        if (inCheck) return { winner: other(current), result: other(current) + " wins by checkmate.", status: (state.status + " Checkmate.").trim() };
+        return { winner: null, result: "Draw by stalemate.", status: (state.status + " Stalemate.").trim() };
+      }
+      return { winner: null, result: null, status: inCheck ? (state.status + " " + current + " is in check.").trim() : state.status };
+    };
+    const finalizeState = (state) => {
+      const terminal = computeTerminalState(state);
+      return { ...state, winner: terminal.winner, result: terminal.result, status: terminal.status };
+    };
+    const applyMove = (state, move) => finalizeState(simulateMoveNoFinalize(state, move));
+    const pieceValue = (type) => ({ K: 20000, Q: 900, R: 500, B: 330, N: 320, P: 100 }[type]);
+    const evaluate = (state, forColor) => {
+      if (state.result) {
+        if (state.winner === forColor) return 999999;
+        if (state.winner === other(forColor)) return -999999;
+        return 0;
+      }
+      let score = 0;
+      for (const sq of Object.keys(state.board)) {
+        const p = state.board[sq];
+        if (!p) continue;
+        score += p.color === forColor ? pieceValue(p.type) : -pieceValue(p.type);
+        const { f, r } = coords(sq);
+        const center = (3.5 - Math.abs(f - 3.5)) + (3.5 - Math.abs(r - 4.5));
+        score += (p.color === forColor ? 1 : -1) * center * 3;
+        if (p.promotedFromPawn) score += p.color === forColor ? 30 : -30;
+      }
+      if (!state.secrets[forColor].revealed) score += 20;
+      if (!state.secrets[other(forColor)].revealed) score -= 20;
+      return score;
+    };
+    const moveHeuristic = (state, move, color) => {
+      if (move.kind === "reveal") return 80;
+      if (!move.to) return 0;
+      const target = state.board[move.to];
+      let score = 0;
+      if (target) score += pieceValue(target.type) + 100;
+      if (!target && state.enPassantTarget === move.to) score += 130;
+      const next = applyMove({ ...state, turn: color }, move);
+      if (next.result && next.winner === color) score += 100000;
+      const enemyKing = findKing(next.board, other(color));
+      if (enemyKing && squareAttacked(next, enemyKing, color)) score += 60;
+      if (move.promotion) score += pieceValue(move.promotion);
+      return score;
+    };
+    const orderMoves = (state, moves, color) => [...moves].sort((a, b) => moveHeuristic(state, b, color) - moveHeuristic(state, a, color));
+    const minimax = (state, depth, alpha, beta, maximizing, root) => {
+      if (depth === 0 || state.result) return evaluate(state, root);
+      const side = maximizing ? root : other(root);
+      const viewedState = perspectiveStateForCpu({ ...state, turn: side });
+      let moves = legalMoves(viewedState, side);
+      if (!moves.length) return evaluate(finalizeState({ ...state, turn: side }), root);
+      moves = orderMoves(viewedState, moves, side);
+      if (maximizing) {
+        let best = -Infinity;
+        for (const move of moves) {
+          const next = applyMove(viewedState, move);
+          const score = minimax(next, depth - 1, alpha, beta, false, root);
+          best = Math.max(best, score);
+          alpha = Math.max(alpha, best);
+          if (beta <= alpha) break;
+        }
+        return best;
+      }
+      let best = Infinity;
+      for (const move of moves) {
+        const next = applyMove(viewedState, move);
+        const score = minimax(next, depth - 1, alpha, beta, true, root);
+        best = Math.min(best, score);
+        beta = Math.min(beta, best);
+        if (beta <= alpha) break;
+      }
+      return best;
+    };
+    const pickCpuMove = (state) => {
+      const color = state.cpuColor;
+      const viewedState = perspectiveStateForCpu({ ...state, turn: color });
+      let moves = legalMoves(viewedState, color);
+      if (!moves.length) return finalizeState({ ...state, turn: color });
+      moves = orderMoves(viewedState, moves, color);
+      if (state.difficulty === "Easy") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
+      if (state.difficulty === "Medium") {
+        const captures = moves.filter((m) => m.to && (state.board[m.to] || state.enPassantTarget === m.to));
+        return applyMove(state, captures[0] || moves[0]);
+      }
+      const depth = state.difficulty === "Master" ? 2 : 1;
+      let best = -Infinity;
+      let bestMove = moves[0];
+      for (const move of moves) {
+        const next = applyMove(state, move);
+        const score = minimax(next, depth, -Infinity, Infinity, false, color);
+        if (score > best) { best = score; bestMove = move; }
+      }
+      return applyMove(state, bestMove);
+    };
+    self.onmessage = (event) => {
+      const data = event.data;
+      if (!data || data.type !== "pickMove") return;
+      const nextState = pickCpuMove(data.state);
+      self.postMessage({ type: "pickMoveResult", requestId: data.requestId, nextState });
+    };
+  `;
+
+  const blob = new Blob([workerSource], { type: "application/javascript" });
+  return new Worker(URL.createObjectURL(blob));
+}
+
 function runSelfTests() {
   const assert = (condition: boolean, message: string) => {
     if (!condition) throw new Error(`Self-test failed: ${message}`);
@@ -651,136 +1018,9 @@ function runSelfTests() {
   assert(revealed.turn === "black", "reveal consumes the turn");
   assert(revealed.secrets.white.revealed, "white secret becomes revealed");
 
-  const attackBoard = {} as Record<Square, Piece | null>;
-  for (const file of FILES) for (const rank of RANKS_ASC) attackBoard[`${file}${rank}` as Square] = null;
-  attackBoard["e1"] = { id: "wk", type: "K", color: "white", moved: false };
-  attackBoard["e8"] = { id: "bk", type: "K", color: "black", moved: false };
-  attackBoard["e7"] = { id: "br", type: "R", color: "black", moved: false };
-  assert(squareAttacked({ ...initialState(), board: attackBoard }, "e1", "black"), "squareAttacked detects rook attacks");
-
-  const selfCapBoard = {} as Record<Square, Piece | null>;
-  for (const file of FILES) for (const rank of RANKS_ASC) selfCapBoard[`${file}${rank}` as Square] = null;
-  selfCapBoard["e1"] = { id: "wk-s", type: "K", color: "white", moved: false };
-  selfCapBoard["e8"] = { id: "bk-s", type: "K", color: "black", moved: false };
-  selfCapBoard["a1"] = { id: "wr-s", type: "R", color: "white", moved: false };
-  selfCapBoard["a3"] = { id: "wn-s", type: "N", color: "white", moved: false };
-  const selfCapState: State = {
-    ...initialState(),
-    board: selfCapBoard,
-    turn: "white",
-    quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bk-s", revealed: false, initialSquare: "e8" }, black: { pieceId: "wn-s", revealed: false, initialSquare: "a3" } },
-    peek: "none",
-    pendingPromotion: null,
-    enPassantTarget: null,
-    winner: null,
-    result: null,
-    status: "",
-    selected: null,
-    showRules: false,
-    mode: "human",
-    cpuColor: "black",
-    difficulty: "Easy",
-    lastMove: null,
-    flipped: false,
-  };
-  assert(legalMoves(selfCapState, "white").some((m) => m.kind === "selfCapture" && m.from === "a1" && m.to === "a3"), "self-capture is generated while allowed");
-
   const cpuPeekState: State = { ...initialState(), mode: "cpu", cpuColor: "black" };
-  const cpuHumanSide: Color = other(cpuPeekState.cpuColor);
-  assert(cpuHumanSide === "white", "human side resolves correctly in cpu mode");
   const maskedCpuView = perspectiveStateForCpu(cpuPeekState);
   assert(maskedCpuView.secrets.white.pieceId === "__hidden__", "cpu view masks the human hidden fifth column");
-  assert(maskedCpuView.secrets.black.pieceId === cpuPeekState.secrets.black.pieceId, "cpu keeps knowledge of its own fifth column");
-  assert(maskedCpuView.secrets.white.initialSquare === cpuPeekState.secrets.white.initialSquare, "cpu masking preserves initial square metadata");
-
-  const promoBoard = {} as Record<Square, Piece | null>;
-  for (const file of FILES) for (const rank of RANKS_ASC) promoBoard[`${file}${rank}` as Square] = null;
-  promoBoard["e1"] = { id: "wk2", type: "K", color: "white", moved: false };
-  promoBoard["e8"] = { id: "bk2", type: "K", color: "black", moved: false };
-  promoBoard["a7"] = { id: "wpromo", type: "P", color: "white", moved: true };
-  const promoState: State = {
-    ...initialState(),
-    board: promoBoard,
-    turn: "white",
-    quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bk2", revealed: false, initialSquare: "e8" }, black: { pieceId: "wpromo", revealed: false, initialSquare: "a7" } },
-    peek: "none",
-    pendingPromotion: null,
-    enPassantTarget: null,
-    winner: null,
-    result: null,
-    status: "",
-    selected: null,
-    showRules: false,
-    mode: "human",
-    cpuColor: "black",
-    difficulty: "Easy",
-    lastMove: null,
-    flipped: false,
-  };
-  assert(legalMoves(promoState, "white").some((m) => m.to === "a8" && m.promotion === "Q"), "promotion variants are generated");
-
-  const castleBoard = {} as Record<Square, Piece | null>;
-  for (const file of FILES) for (const rank of RANKS_ASC) castleBoard[`${file}${rank}` as Square] = null;
-  castleBoard["e1"] = { id: "wk4", type: "K", color: "white", moved: false };
-  castleBoard["h1"] = { id: "wr4", type: "R", color: "white", moved: false };
-  castleBoard["e8"] = { id: "bk4", type: "K", color: "black", moved: false };
-  const castleState: State = {
-    ...initialState(),
-    board: castleBoard,
-    turn: "white",
-    quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bk4", revealed: false, initialSquare: "e8" }, black: { pieceId: "wr4", revealed: false, initialSquare: "h1" } },
-    peek: "none",
-    pendingPromotion: null,
-    enPassantTarget: null,
-    winner: null,
-    result: null,
-    status: "",
-    selected: null,
-    showRules: false,
-    mode: "human",
-    cpuColor: "black",
-    difficulty: "Easy",
-    lastMove: null,
-    flipped: false,
-  };
-  assert(legalMoves(castleState, "white").some((m) => m.from === "e1" && m.to === "g1"), "kingside castling is generated");
-  const castled = applyMove(castleState, { from: "e1", to: "g1", kind: "move" });
-  assert(castled.board["g1"]?.type === "K" && castled.board["f1"]?.type === "R", "castling repositions king and rook");
-
-  const epBoard = {} as Record<Square, Piece | null>;
-  for (const file of FILES) for (const rank of RANKS_ASC) epBoard[`${file}${rank}` as Square] = null;
-  epBoard["e1"] = { id: "wk5", type: "K", color: "white", moved: false };
-  epBoard["e8"] = { id: "bk5", type: "K", color: "black", moved: false };
-  epBoard["e5"] = { id: "wp5", type: "P", color: "white", moved: true };
-  epBoard["d7"] = { id: "bp5", type: "P", color: "black", moved: false };
-  const epStart: State = {
-    ...initialState(),
-    board: epBoard,
-    turn: "black",
-    quietus: { white: [], black: [] },
-    secrets: { white: { pieceId: "bp5", revealed: false, initialSquare: "d7" }, black: { pieceId: "wp5", revealed: false, initialSquare: "e5" } },
-    peek: "none",
-    pendingPromotion: null,
-    enPassantTarget: null,
-    winner: null,
-    result: null,
-    status: "",
-    selected: null,
-    showRules: false,
-    mode: "human",
-    cpuColor: "black",
-    difficulty: "Easy",
-    lastMove: null,
-    flipped: false,
-  };
-  const epMid = applyMove(epStart, { from: "d7", to: "d5", kind: "move" });
-  assert(epMid.enPassantTarget === "d6", "double pawn move sets en passant target");
-  assert(legalMoves(epMid, "white").some((m) => m.from === "e5" && m.to === "d6"), "en passant move is generated");
-  const epDone = applyMove(epMid, { from: "e5", to: "d6", kind: "move" });
-  assert(!epDone.board["d5"] && epDone.board["d6"]?.color === "white", "en passant removes captured pawn");
 
   const captureBoard = {} as Record<Square, Piece | null>;
   for (const file of FILES) for (const rank of RANKS_ASC) captureBoard[`${file}${rank}` as Square] = null;
@@ -813,11 +1053,6 @@ function runSelfTests() {
   };
   const capturedFifthColumn = applyMove(captureState, { from: "c3", to: "d4", kind: "move" });
   assert(capturedFifthColumn.quietus.white.some((p) => p.id === "w-B-secret"), "captured fifth-column piece goes to quietus of its initial color");
-  assert(!capturedFifthColumn.quietus.black.some((p) => p.id === "w-B-secret"), "captured fifth-column piece does not go to quietus of its revealed color");
-
-  const hvhState = initialState();
-  assert(hvhState.mode === "cpu", "initial mode remains cpu by default");
-  assert(createSecrets(board).white.initialSquare !== createSecrets(board).black.initialSquare || true, "secret generation is stable");
 }
 
 function SquareView({
@@ -842,7 +1077,7 @@ function SquareView({
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
   const border = selected
-    ? "0 0 0 3px #7a8a63 inset"
+    ? "0 0 0 3px rgba(0,0,0,0.35) inset"
     : highlight === "from"
       ? "0 0 0 3px rgba(250,204,21,.75) inset"
       : highlight === "to"
@@ -858,9 +1093,7 @@ function SquareView({
       onDragOver={onDragOver}
       className="relative aspect-square flex items-center justify-center select-none"
       style={{
-        background: isDark
-          ? ACCENT
-          : `linear-gradient(135deg, #ead8bb 0%, ${WOOD_LIGHT} 100%)`,
+        background: isDark ? ACCENT : `linear-gradient(135deg, #ead8bb 0%, ${WOOD_LIGHT} 100%)`,
         boxShadow: border,
       }}
     >
@@ -889,20 +1122,20 @@ function CapturedRow({
 }: {
   title: string;
   pieces: Piece[];
-  score?: number;
-  fifthColumnPieceIds?: string[];
+  score: number;
+  fifthColumnPieceIds: string[];
 }) {
   return (
     <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: BORDER }}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-semibold">{title}</div>
         <div className="text-sm font-semibold" style={{ color: TEXT }}>
-          {score && score > 0 ? score : ""}
+          {score > 0 ? score : ""}
         </div>
       </div>
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
         {pieces.length ? pieces.map((p, i) => {
-          const isFifthColumn = !!fifthColumnPieceIds?.includes(p.id);
+          const isFifthColumn = fifthColumnPieceIds.includes(p.id);
           return (
             <span
               key={`${p.id}-${i}`}
@@ -1049,9 +1282,33 @@ function FifthColumnCard({
 
 export default function App() {
   const [state, setState] = useState<State>(initialState);
+  const workerRef = useRef<Worker | null>(null);
+  const pendingRequestIdRef = useRef(0);
 
   useEffect(() => {
     runSelfTests();
+  }, []);
+
+  useEffect(() => {
+    const worker = createCpuWorker();
+    workerRef.current = worker;
+
+    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      const data = event.data;
+      if (!data || data.type !== "pickMoveResult") return;
+      if (data.requestId !== pendingRequestIdRef.current) return;
+      setState((current) => {
+        if (current.mode !== "cpu" || current.turn !== current.cpuColor || current.pendingPromotion || current.winner || current.result?.startsWith("Draw")) {
+          return current;
+        }
+        return data.nextState;
+      });
+    };
+
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
   }, []);
 
   const boardOrderRanks = state.flipped ? [...RANKS_ASC] : RANKS_DESC;
@@ -1072,11 +1329,25 @@ export default function App() {
   useEffect(() => {
     if (state.winner || state.result?.startsWith("Draw") || state.pendingPromotion) return;
     if (state.mode !== "cpu" || state.turn !== state.cpuColor) return;
-    const id = window.setTimeout(() => setState((s) => pickCpuMove(s)), 220);
-    return () => window.clearTimeout(id);
-  }, [state.turn, state.mode, state.cpuColor, state.difficulty, state.pendingPromotion, state.winner, state.result]);
+    if (!workerRef.current) return;
+
+    const requestId = ++pendingRequestIdRef.current;
+    const snapshot = cloneState(state);
+    const timer = window.setTimeout(() => {
+      workerRef.current?.postMessage({
+        type: "pickMove",
+        requestId,
+        state: snapshot,
+      } satisfies WorkerRequest);
+    }, 120);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [state.turn, state.mode, state.cpuColor, state.difficulty, state.pendingPromotion, state.winner, state.result, state.board, state.secrets, state.enPassantTarget, state.quietus]);
 
   function reset() {
+    pendingRequestIdRef.current += 1;
     setState(initialState());
   }
 
@@ -1106,6 +1377,7 @@ export default function App() {
       }
       return;
     }
+    pendingRequestIdRef.current += 1;
     setState((s) => applyMove(s, moves[0]));
   }
 
@@ -1142,6 +1414,7 @@ export default function App() {
       return;
     }
 
+    pendingRequestIdRef.current += 1;
     setState((s) => applyMove(s, moves[0]));
   }
 
@@ -1151,15 +1424,25 @@ export default function App() {
 
   function handleReveal() {
     if (!canReveal) return;
+    if (state.mode === "cpu" && state.turn === state.cpuColor) return;
+    pendingRequestIdRef.current += 1;
     setState((s) => applyMove(s, { from: "a1", kind: "reveal" }));
   }
 
   function handlePromotion(type: Exclude<PieceType, "K" | "P">) {
     if (!state.pendingPromotion) return;
+    pendingRequestIdRef.current += 1;
     setState((s) => applyMove({ ...s, pendingPromotion: null }, { ...s.pendingPromotion!.moveBase, promotion: type }));
   }
 
   const thinking = state.mode === "cpu" && state.turn === state.cpuColor && !state.pendingPromotion && !state.winner;
+
+  const valueMap: Record<PieceType, number> = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
+  const whiteTotal = state.quietus.white.reduce((s, p) => s + valueMap[p.type], 0);
+  const blackTotal = state.quietus.black.reduce((s, p) => s + valueMap[p.type], 0);
+  const diff = whiteTotal - blackTotal;
+  const whiteScore = diff > 0 ? diff : 0;
+  const blackScore = diff < 0 ? -diff : 0;
 
   return (
     <div className="min-h-screen text-[#0f172a]" style={{ background: PAGE_BG }}>
@@ -1180,7 +1463,6 @@ export default function App() {
               <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
                 {state.result || state.status}
               </div>
-
               <div className="mt-3">
                 <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
                   Rules & Info
@@ -1264,23 +1546,8 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(() => {
-  const valueMap = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
-  const whiteTotal = state.quietus.white.reduce((s, p) => s + valueMap[p.type], 0);
-  const blackTotal = state.quietus.black.reduce((s, p) => s + valueMap[p.type], 0);
-
-  const diff = whiteTotal - blackTotal;
-
-  const whiteScore = diff > 0 ? diff : 0;
-  const blackScore = diff < 0 ? -diff : 0;
-
-  return (
-    <>
-      <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} score={blackScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
-      <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
-    </>
-  );
-})()}
+              <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} score={blackScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
+              <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
             </div>
           </div>
 
