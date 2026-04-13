@@ -1452,7 +1452,7 @@ export default function App() {
         <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(520px,1fr)_280px] gap-4">
           <div className="space-y-4">
             <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
-              <div className="text-xl font-semibold mb-3">Fifth Column Chess</div>
+              <div className="text-xl font-semibold mb-3">Paranoia Chess</div>
               <div className="flex flex-wrap gap-2">
                 <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: "#ffffff", color: TEXT }}>
                   New Game
@@ -1502,7 +1502,7 @@ export default function App() {
               {thinking && <div className="text-xs tracking-[0.18em] uppercase" style={{ color: ACCENT }}>thinking…</div>}
             </div>
 
-            <div style={{ marginTop: "6px" }}>
+            <div style={{ marginTop: "16px" }}>
             <div style={{ fontSize: "14px", letterSpacing: "0.06em", marginBottom: "4px", color: ACCENT, fontWeight: 500 }}>
               Other Yanevi's Variants
             </div>
