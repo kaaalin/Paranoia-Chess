@@ -1515,7 +1515,7 @@ export default function App() {
               style={{ color: TEXT, textDecoration: "none" }}
             >
               <img
-                src="/mnt/data/cover-bmac.png"
+                src="/cover-bmac.png"
                 alt="Kafka Chess"
                 style={{ width: "32px", height: "32px", objectFit: "contain" }}
               />
