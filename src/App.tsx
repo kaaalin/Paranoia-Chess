@@ -1475,7 +1475,7 @@ export default function App() {
                 <img
                   src={LOGO_SRC}
                   alt="Paranoia Chess logo"
-                  className={thinking ? "w-10 h-10 object-contain animate-pulse" : "w-10 h-10 object-contain"}
+                  className={thinking ? "w-12 h-12 object-contain animate-pulse" : "w-12 h-12 object-contain"}
                 />
                 <div className="text-xl font-semibold">Paranoia Chess</div>
               </div>
