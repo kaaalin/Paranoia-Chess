@@ -1244,7 +1244,7 @@ function CapturedRow({
               style={isFifthColumn ? {
                 fontSize: "2.2rem",
                 lineHeight: 1,
-                background: "linear-gradient(90deg, #ffffff 0 50%, #000000 50% 100%)",
+                background: "repeating-linear-gradient(90deg, #ffffff 0 3px, #000000 3px 6px)",
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 color: "transparent",
@@ -1716,8 +1716,24 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CapturedRow title="Quietus · Black captured pieces" pieces={state.quietus.black} score={blackScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
-              <CapturedRow title="Quietus · White captured pieces" pieces={state.quietus.white} score={whiteScore} fifthColumnPieceIds={[state.secrets.white.pieceId, state.secrets.black.pieceId]} />
+              <CapturedRow
+                title="Quietus · Black captured pieces"
+                pieces={state.quietus.black}
+                score={blackScore}
+                fifthColumnPieceIds={[
+                  state.secrets.white.revealed ? state.secrets.white.pieceId : "",
+                  state.secrets.black.revealed ? state.secrets.black.pieceId : "",
+                ].filter(Boolean)}
+              />
+              <CapturedRow
+                title="Quietus · White captured pieces"
+                pieces={state.quietus.white}
+                score={whiteScore}
+                fifthColumnPieceIds={[
+                  state.secrets.white.revealed ? state.secrets.white.pieceId : "",
+                  state.secrets.black.revealed ? state.secrets.black.pieceId : "",
+                ].filter(Boolean)}
+              />
             </div>
           </div>
 
