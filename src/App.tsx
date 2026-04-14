@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 type Color = "white" | "black";
 type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
 type Difficulty = "Easy" | "Medium" | "Hard";
-type Mode = "human" | "cpu";
+type Mode = "human" | "cpu";f
 type Square = `${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h"}${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
 
 type Piece = {
@@ -1844,7 +1844,7 @@ export default function App() {
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>2.</span> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the 'fifth column'.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>3.</span> Only the opponent knows which piece it is.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>4.</span> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden 'fifth column' is revealed, the host player may continue purging their own pawns, bishops, and knights, even if the hidden piece has already been captured or purged.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden 'fifth column' is announced/revealed, the host player may continue purging their own pawns, bishops, and knights.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden 'fifth column' piece is purged or captured by the opponent before being revealed, its identity remains unknown to the host player until the end of the game and the purging remains allowed.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>7.</span> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
             </div>
