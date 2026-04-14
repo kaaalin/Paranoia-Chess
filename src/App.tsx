@@ -1841,11 +1841,11 @@ export default function App() {
             <div className="space-y-3 text-[12px] leading-6" style={{ opacity: 0.9 }}>
               <p>This version keeps the Kafka-style visual language but uses a much simpler architecture and a completely different ruleset.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>1.</span> The board starts from the normal classical chess setup.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>2.</span> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the "fifth column".</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>2.</span> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the 'fifth column'.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>3.</span> Only the opponent knows which piece it is.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>4.</span> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden "fifth column" is revealed, the host player may continue purging their own pawns, bishops, and knights, even if the hidden piece has already been captured or purged.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden "fifth column" piece is purged or captured by the opponent before being revealed, its identity remains unknown to the host player until the end of the game.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden 'fifth column' is revealed, the host player may continue purging their own pawns, bishops, and knights, even if the hidden piece has already been captured or purged.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden 'fifth column' piece is purged or captured by the opponent before being revealed, its identity remains unknown to the host player until the end of the game and the purging remains allowed.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>7.</span> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
             </div>
           </div>
