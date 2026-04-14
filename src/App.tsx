@@ -527,6 +527,14 @@ function applyMove(state: State, move: Move): State {
   return finalizeState(simulateMoveNoFinalize(state, move));
 }
 
+function humanMoveFromCandidates(candidates: Move[]): Move | null {
+  if (!candidates.length) return null;
+  const explicit = candidates.find((m) => !m.promotion);
+  if (explicit) return explicit;
+  const first = candidates[0];
+  return { ...first, promotion: undefined };
+}
+
 function pieceValue(type: PieceType) {
   return { K: 20000, Q: 900, R: 500, B: 330, N: 320, P: 100 }[type];
 }
@@ -1032,6 +1040,39 @@ function runSelfTests() {
   assert(revealed.turn === "black", "reveal consumes the turn");
   assert(revealed.secrets.white.revealed, "white secret becomes revealed");
 
+  const promoBoard = {} as Record<Square, Piece | null>;
+  for (const file of FILES) for (const rank of RANKS_ASC) promoBoard[`${file}${rank}` as Square] = null;
+  promoBoard["e1"] = { id: "w-K-promo", type: "K", color: "white", moved: false };
+  promoBoard["e8"] = { id: "b-K-promo", type: "K", color: "black", moved: false };
+  promoBoard["a7"] = { id: "w-P-promo", type: "P", color: "white", moved: true };
+  const promoState: State = {
+    ...initialState(),
+    board: promoBoard,
+    turn: "white",
+    selected: null,
+    flipped: false,
+    quietus: { white: [], black: [] },
+    mode: "human",
+    cpuColor: "black",
+    difficulty: "Medium",
+    status: "",
+    winner: null,
+    result: null,
+    showRules: false,
+    secrets: {
+      white: { pieceId: "b-P-hidden", revealed: false, initialSquare: "a7" },
+      black: { pieceId: "w-P-hidden", revealed: false, initialSquare: "a2" },
+    },
+    peek: "none",
+    pendingPromotion: null,
+    enPassantTarget: null,
+    lastMove: null,
+  };
+  const promoMoves = legalMoves(promoState, "white").filter((m) => m.from === "a7" && m.to === "a8");
+  assert(promoMoves.length === 4, "promotion generates four explicit variants");
+  const pendingPromo = applyMove(promoState, humanMoveFromCandidates(promoMoves)!);
+  assert(!!pendingPromo.pendingPromotion, "human promotion path opens chooser instead of auto-promoting");
+
   const cpuPeekState: State = { ...initialState(), mode: "cpu", cpuColor: "black" };
   const maskedCpuView = perspectiveStateForCpu(cpuPeekState);
   assert(maskedCpuView.secrets.white.pieceId === "__hidden__", "cpu view masks the human hidden fifth column");
@@ -1430,7 +1471,7 @@ export default function App() {
 
     const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq);
     const purgeMove = moves.find((m) => m.kind === "selfCapture");
-    const normalMove = moves.find((m) => m.kind !== "selfCapture");
+    const normalMove = humanMoveFromCandidates(moves.filter((m) => m.kind !== "selfCapture"));
 
     if (purgeMove && state.board[sq]?.color === state.turn) {
       setPurgeChoice({ from: state.selected, to: sq, move: purgeMove });
@@ -1486,8 +1527,11 @@ export default function App() {
       return;
     }
 
+    const chosenMove = humanMoveFromCandidates(moves);
+    if (!chosenMove) return;
+
     pendingRequestIdRef.current += 1;
-    setState((s) => applyMove(s, moves[0]));
+    setState((s) => applyMove(s, chosenMove));
   }
 
   function handleDragOver(e: React.DragEvent<HTMLButtonElement>) {
@@ -1504,7 +1548,25 @@ export default function App() {
   function handlePromotion(type: Exclude<PieceType, "K" | "P">) {
     if (!state.pendingPromotion || purgeChoice) return;
     pendingRequestIdRef.current += 1;
-    setState((s) => applyMove({ ...s, pendingPromotion: null }, { ...s.pendingPromotion!.moveBase, promotion: type }));
+    setState((current) => {
+      if (!current.pendingPromotion) return current;
+
+      const next = cloneState(current);
+      const square = next.pendingPromotion.square;
+      const piece = next.board[square];
+      if (!piece) return { ...next, pendingPromotion: null };
+
+      next.board[square] = {
+        ...piece,
+        type,
+        promotedFromPawn: true,
+        moved: true,
+      };
+      next.pendingPromotion = null;
+      next.turn = other(current.turn);
+      next.status = `${current.turn} promoted on ${square}.`;
+      return finalizeState(next);
+    });
   }
 
   const thinking = state.mode === "cpu" && state.turn === state.cpuColor && !state.pendingPromotion && !state.winner && !purgeChoice;
@@ -1796,19 +1858,27 @@ export default function App() {
 
       {state.pendingPromotion && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: PANEL, borderColor: BORDER }}>
-            <div className="text-xl font-semibold mb-3">Choose promotion</div>
+          <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: "#ffffff", borderColor: BORDER }}>
+            <div className="text-xl font-semibold mb-3" style={{ color: TEXT }}>Choose promotion</div>
             <div className="grid grid-cols-4 gap-3">
-              {PROMOTION_TYPES.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => handlePromotion(type)}
-                  className="rounded-2xl p-4 text-6xl leading-none"
-                  style={{ background: PANEL_2, color: state.pendingPromotion?.color === "white" ? "#111" : "#000" }}
-                >
-                  {GLYPHS[state.pendingPromotion!.color][type]}
-                </button>
-              ))}
+              {PROMOTION_TYPES.map((type) => {
+                const isWhite = state.pendingPromotion?.color === "white";
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handlePromotion(type)}
+                    className="rounded-2xl p-4 text-6xl leading-none transition-all duration-150 hover:opacity-85 hover:-translate-y-[1px]"
+                    style={{
+                      background: "#ffffff",
+                      color: isWhite ? "#ffffff" : "#000000",
+                      textShadow: isWhite ? "0 0 1px #000, 0 0 1px #000" : "none",
+                      WebkitTextStroke: isWhite ? "0.8px #000" : undefined,
+                    }}
+                  >
+                    {GLYPHS[state.pendingPromotion!.color][type]}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1841,11 +1911,11 @@ export default function App() {
             <div className="space-y-3 text-[12px] leading-6" style={{ opacity: 0.9 }}>
               <p>This version keeps the Kafka-style visual language but uses a much simpler architecture and a completely different ruleset.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>1.</span> The board starts from the normal classical chess setup.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>2.</span> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the 'fifth column'.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>2.</span> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the "fifth column".</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>3.</span> Only the opponent knows which piece it is.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>4.</span> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden 'fifth column' is revealed, the host player may purge their own pawns, bishops, and knights.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden 'fifth column' piece is purged or captured by the opponent before being revealed, its identity remains unknown to the host player until the end of the game and the purging remains allowed.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden "fifth column" is revealed, the host player may continue purging their own pawns, bishops, and knights, even if the hidden piece has already been captured or purged.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden "fifth column" piece is purged or captured by the opponent before being revealed, its identity remains unknown to the host player until the end of the game.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>7.</span> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
             </div>
           </div>
