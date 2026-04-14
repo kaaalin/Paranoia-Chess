@@ -1515,7 +1515,7 @@ export default function App() {
               <div className="text-lg font-semibold">Computer opponent</div>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Mode</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `2px solid #000000`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
                   <option value="human">Human vs Human</option>
                   <option value="cpu">Human vs Computer</option>
                 </select>
@@ -1688,7 +1688,7 @@ export default function App() {
             className="w-full max-w-[300px] rounded-[24px] p-4 shadow-lg"
             style={{
               background: "#ffffff",
-              border: `1px solid ${BORDER}`,
+              border: `1px solid #000000`,
               boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
             }}
           >
@@ -1775,23 +1775,38 @@ export default function App() {
       )}
 
       {state.showRules && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setState((s) => ({ ...s, showRules: false }))}>
-          <div className="w-full max-w-4xl max-h-[88vh] overflow-auto rounded-3xl p-6 border" style={{ background: PANEL, borderColor: BORDER }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div className="text-2xl font-semibold">Rules & Info</div>
-              <button onClick={() => setState((s) => ({ ...s, showRules: false }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: ACCENT, color: "#ffffff" }}>
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-2 z-50" onClick={() => setState((s) => ({ ...s, showRules: false }))}>
+          <div
+            className="w-full max-w-3xl max-h-[88vh] overflow-auto rounded-[24px] p-4 shadow-lg"
+            style={{
+              background: "#ffffff",
+              border: `1px solid #000000`,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+              color: TEXT,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="text-[15px]" style={{ fontWeight: 500, letterSpacing: "0.04em" }}>
+                Rules & Info
+              </div>
+              <button
+                onClick={() => setState((s) => ({ ...s, showRules: false }))}
+                className="px-3 py-1.5 rounded-xl text-[12px] transition-all duration-150 hover:opacity-80 hover:-translate-y-[1px]"
+                style={{ background: "transparent", border: `1px solid #000000`, color: TEXT }}
+              >
                 Close
               </button>
             </div>
-            <div className="space-y-4 text-sm leading-6 opacity-95">
+            <div className="space-y-3 text-[12px] leading-6" style={{ opacity: 0.9 }}>
               <p>This version keeps the Kafka-style visual language but uses a much simpler architecture and a completely different ruleset.</p>
-              <p><strong>1.</strong> The board starts from the normal classical chess setup.</p>
-              <p><strong>2.</strong> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the <strong>fifth column</strong>.</p>
-              <p><strong>3.</strong> Only the opponent knows which piece it is.</p>
-              <p><strong>4.</strong> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
-              <p><strong>5.</strong> Until a side's hidden fifth column is revealed, that host player may purge only their own pawns, bishops, and knights, because only those could be the hidden fifth column. No piece may ever be suicided off the board.</p>
-              <p><strong>6.</strong> If a hidden fifth-column piece is purged by its host player, the game automatically reports that it was the opponent's fifth column.</p>
-              <p><strong>7.</strong> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>1.</span> The board starts from the normal classical chess setup.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>2.</span> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the "fifth column".</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>3.</span> Only the opponent knows which piece it is.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>4.</span> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden fifth column is revealed, that host player may purge only their own pawns, bishops, and knights, because only those could be the hidden fifth column. No piece may ever be suicided off the board.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden fifth-column piece is purged by its host player, the game automatically reports that it was the opponent's fifth column.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>7.</span> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
             </div>
           </div>
         </div>
