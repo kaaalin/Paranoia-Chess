@@ -92,7 +92,7 @@ const coords = (sq: Square) => ({
 });
 const inBounds = (f: number, r: number) => f >= 0 && f < 8 && r >= 1 && r <= 8;
 const originalColorFromPieceId = (pieceId: string): Color => (pieceId.startsWith("w-") ? "white" : "black");
-const canBePurgedTarget = (piece: Piece | null) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N");
+const canBePurgedTarget = (piece: Piece | null) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N" || !!piece.promotedFromPawn);
 
 function cloneBoard(board: Record<Square, Piece | null>) {
   const out = {} as Record<Square, Piece | null>;
@@ -644,7 +644,7 @@ function createCpuWorker() {
     const keyOf = (f, r) => FILES[f] + r;
     const coords = (sq) => ({ f: FILES.indexOf(sq[0]), r: Number(sq[1]) });
     const inBounds = (f, r) => f >= 0 && f < 8 && r >= 1 && r <= 8;
-    const canBePurgedTarget = (piece) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N");
+    const canBePurgedTarget = (piece) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N" || !!piece.promotedFromPawn);
     const cloneBoard = (board) => {
       const out = {};
       for (const file of FILES) {
@@ -1042,6 +1042,46 @@ function runSelfTests() {
   assert(!canBePurgedTarget({ id: "x4", type: "Q", color: "white", moved: false }), "queen cannot be purged");
   assert(!canBePurgedTarget({ id: "x5", type: "K", color: "white", moved: false }), "king cannot be purged");
   assert(!canBePurgedTarget({ id: "x6", type: "R", color: "white", moved: false }), "rook cannot be purged");
+  assert(canBePurgedTarget({ id: "x7", type: "Q", color: "white", moved: true, promotedFromPawn: true }), "promoted pawn can be purged even after promotion");
+
+  const promotedPurgeBoard = {} as Record<Square, Piece | null>;
+  for (const file of FILES) {
+    for (const rank of RANKS_ASC) {
+      promotedPurgeBoard[`${file}${rank}` as Square] = null;
+    }
+  }
+  promotedPurgeBoard["e1"] = { id: "w-K-promote", type: "K", color: "white", moved: false };
+  promotedPurgeBoard["e8"] = { id: "b-K-promote", type: "K", color: "black", moved: false };
+  promotedPurgeBoard["d1"] = { id: "w-R-base", type: "R", color: "white", moved: true };
+  promotedPurgeBoard["d4"] = { id: "w-Q-promoted", type: "Q", color: "white", moved: true, promotedFromPawn: true };
+  const promotedPurgeState: State = {
+    ...initialState(),
+    board: promotedPurgeBoard,
+    turn: "white",
+    selected: null,
+    flipped: false,
+    quietus: { white: [], black: [] },
+    mode: "human",
+    cpuColor: "black",
+    difficulty: "Medium",
+    status: "",
+    winner: null,
+    result: null,
+    showRules: false,
+    secrets: {
+      white: { pieceId: "b-P-hidden", revealed: false, initialSquare: "a7" },
+      black: { pieceId: "w-P-hidden", revealed: false, initialSquare: "a2" },
+    },
+    peek: "none",
+    pendingPromotion: null,
+    enPassantTarget: null,
+    lastMove: null,
+  };
+  const promotedPurgeMoves = legalMoves(promotedPurgeState, "white");
+  assert(
+    promotedPurgeMoves.some((m) => m.kind === "selfCapture" && m.from === "d1" && m.to === "d4"),
+    "legal self-capture is generated against a promoted pawn",
+  );
 
   const captureBoard = {} as Record<Square, Piece | null>;
   for (const file of FILES) for (const rank of RANKS_ASC) captureBoard[`${file}${rank}` as Square] = null;
@@ -1404,7 +1444,7 @@ export default function App() {
     }
 
     if (state.board[sq]?.color === state.turn) {
-      if (state.secrets[other(state.turn)].revealed) {
+      if (false) {
         setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed.", selected: sq }));
       } else {
         setState((s) => ({ ...s, selected: sq }));
@@ -1437,7 +1477,7 @@ export default function App() {
     const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === from && m.to === sq);
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn) {
-        if (state.secrets[other(state.turn)].revealed) {
+        if (false) {
           setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
         } else {
           setState((s) => ({ ...s, selected: sq }));
@@ -1804,8 +1844,8 @@ export default function App() {
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>2.</span> At game start, one pawn, bishop, or knight from each side is randomly assigned to the opponent. That hidden asset is the "fifth column".</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>3.</span> Only the opponent knows which piece it is.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>4.</span> On any turn, including the first, a player may reveal their own fifth column instead of making a move. The revealed piece immediately changes to that player's color and from then on behaves as that side's piece. If it came from a pawn that later promoted, the same physical piece can still be revealed.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden fifth column is revealed, that host player may purge only their own pawns, bishops, and knights, because only those could be the hidden fifth column. No piece may ever be suicided off the board.</p>
-              <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden fifth-column piece is purged by its host player, the game automatically reports that it was the opponent's fifth column.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>5.</span> Until a side's hidden "fifth column" is revealed, the host player may continue purging their own pawns, bishops, and knights, even if the hidden piece has already been captured or purged.</p>
+              <p><span style={{ color: ACCENT, fontWeight: 500 }}>6.</span> If a hidden "fifth column" piece is purged or captured by the opponent before being revealed, its identity remains unknown to the host player until the end of the game.</p>
               <p><span style={{ color: ACCENT, fontWeight: 500 }}>7.</span> Otherwise the game follows normal chess movement, check, checkmate, stalemate, promotion, castling, and en passant.</p>
             </div>
           </div>
