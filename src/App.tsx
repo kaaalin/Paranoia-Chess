@@ -1683,42 +1683,71 @@ export default function App() {
       </div>
 
       {purgeChoice && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: PANEL, borderColor: BORDER }}>
-            <div className="text-xl font-semibold mb-3">Purge or select?</div>
-            <div className="text-sm opacity-90 mb-4" style={{ color: TEXT }}>
-              The selected piece on <strong>{purgeChoice.from}</strong> can legally purge your own piece on <strong>{purgeChoice.to}</strong>.
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-4 z-50">
+          <div
+            className="w-full max-w-sm rounded-[28px] p-6 shadow-xl"
+            style={{
+              background: "#ffffff",
+              border: `1px solid ${BORDER}`,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+            }}
+          >
+            <div
+              className="text-[15px] text-center mb-2"
+              style={{ color: TEXT, fontWeight: 500, letterSpacing: "0.04em" }}
+            >
+              Choose action
             </div>
-            <div className="flex gap-3">
+
+            <div
+              className="text-[12px] text-center mb-5"
+              style={{ color: TEXT, opacity: 0.65, letterSpacing: "0.06em" }}
+            >
+              {purgeChoice.from} → {purgeChoice.to}
+            </div>
+
+            <div className="flex flex-col gap-3">
               <button
                 onClick={() => {
                   pendingRequestIdRef.current += 1;
                   setState((s) => applyMove(s, purgeChoice.move));
                   setPurgeChoice(null);
                 }}
-                className="flex-1 px-4 py-3 rounded-2xl font-semibold"
-                style={{ background: ACCENT, color: "#ffffff" }}
+                className="w-full py-3 rounded-2xl text-[13px] transition-all"
+                style={{
+                  background: "transparent",
+                  color: ACCENT,
+                  border: `1px solid ${ACCENT}`,
+                  fontWeight: 500,
+                }}
               >
-                Purge it
+                Purge piece
               </button>
+
               <button
                 onClick={() => {
                   setState((s) => ({ ...s, selected: purgeChoice.to }));
                   setPurgeChoice(null);
                 }}
-                className="flex-1 px-4 py-3 rounded-2xl font-semibold"
-                style={{ background: PANEL_2, color: TEXT, border: `1px solid ${BORDER}` }}
+                className="w-full py-3 rounded-2xl text-[13px] transition-all"
+                style={{
+                  background: "transparent",
+                  color: TEXT,
+                  border: `1px solid ${BORDER}`,
+                  fontWeight: 400,
+                }}
               >
-                Select it instead
+                Select instead
+              </button>
+
+              <button
+                onClick={() => setPurgeChoice(null)}
+                className="w-full py-2 text-[11px] transition-opacity"
+                style={{ color: TEXT, opacity: 0.55, fontWeight: 400 }}
+              >
+                Cancel
               </button>
             </div>
-            <button
-              onClick={() => setPurgeChoice(null)}
-              className="mt-3 w-full px-4 py-2 rounded-2xl text-sm"
-              style={{ background: "transparent", color: TEXT, border: `1px solid ${BORDER}` }}
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}
