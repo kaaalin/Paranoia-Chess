@@ -1227,6 +1227,8 @@ function CapturedRow({
   score: number;
   fifthColumnPieceIds: string[];
 }) {
+  const quietusColor: Color = title.includes("Black captured") ? "black" : "white";
+
   return (
     <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: BORDER }}>
       <div className="flex items-center justify-between mb-2">
@@ -1238,26 +1240,37 @@ function CapturedRow({
       <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
         {pieces.length ? pieces.map((p, i) => {
           const isFifthColumn = fifthColumnPieceIds.includes(p.id);
+          const displayColor: Color = isFifthColumn ? quietusColor : p.color;
+          const dotStyle = quietusColor === "black"
+            ? { background: "#ffffff", border: "1px solid #000000" }
+            : { background: "#000000", border: "none" };
+
           return (
             <span
               key={`${p.id}-${i}`}
-              style={isFifthColumn ? {
+              className="relative inline-flex items-start justify-start"
+              style={{
                 fontSize: "2.2rem",
                 lineHeight: 1,
-                background: "repeating-linear-gradient(90deg, #ffffff 0 3px, #000000 3px 6px)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                color: "transparent",
-                WebkitTextStroke: "0.6px #000",
-              } : {
-                fontSize: "2.2rem",
-                lineHeight: 1,
-                textShadow: p.color === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
-                WebkitTextStroke: p.color === "white" ? "0.6px #000" : undefined,
-                color: p.color === "white" ? "#ffffff" : "#000000",
+                textShadow: displayColor === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
+                WebkitTextStroke: displayColor === "white" ? "0.6px #000" : undefined,
+                color: displayColor === "white" ? "#ffffff" : "#000000",
               }}
             >
-              {GLYPHS[p.color][p.type]}
+              {GLYPHS[displayColor][p.type]}
+              {isFifthColumn && (
+                <span
+                  style={{
+                    position: "absolute",
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    top: "4px",
+                    right: "2px",
+                    ...dotStyle,
+                  }}
+                />
+              )}
             </span>
           );
         }) : <span className="text-sm opacity-60">—</span>}
