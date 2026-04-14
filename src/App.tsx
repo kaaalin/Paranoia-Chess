@@ -1515,7 +1515,7 @@ export default function App() {
               <div className="text-lg font-semibold">Computer opponent</div>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Mode</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `2px solid #000000`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
                   <option value="human">Human vs Human</option>
                   <option value="cpu">Human vs Computer</option>
                 </select>
@@ -1683,9 +1683,9 @@ export default function App() {
       </div>
 
       {purgeChoice && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-2 z-50">
           <div
-            className="w-full max-w-sm rounded-[28px] p-6 shadow-xl"
+            className="w-full max-w-[300px] rounded-[24px] p-4 shadow-lg"
             style={{
               background: "#ffffff",
               border: `1px solid ${BORDER}`,
@@ -1707,42 +1707,44 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <button
-                onClick={() => {
-                  pendingRequestIdRef.current += 1;
-                  setState((s) => applyMove(s, purgeChoice.move));
-                  setPurgeChoice(null);
-                }}
-                className="w-full py-3 rounded-2xl text-[13px] transition-all"
-                style={{
-                  background: "transparent",
-                  color: ACCENT,
-                  border: `1px solid ${ACCENT}`,
-                  fontWeight: 500,
-                }}
-              >
-                Purge piece
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    pendingRequestIdRef.current += 1;
+                    setState((s) => applyMove(s, purgeChoice.move));
+                    setPurgeChoice(null);
+                  }}
+                  className="flex-1 py-3 rounded-2xl text-[13px] transition-all duration-150 hover:opacity-80 hover:-translate-y-[1px]"
+                  style={{
+                    background: "transparent",
+                    color: ACCENT,
+                    border: `1px solid ${ACCENT}`,
+                    fontWeight: 500,
+                  }}
+                >
+                  Purge
+                </button>
 
-              <button
-                onClick={() => {
-                  setState((s) => ({ ...s, selected: purgeChoice.to }));
-                  setPurgeChoice(null);
-                }}
-                className="w-full py-3 rounded-2xl text-[13px] transition-all"
-                style={{
-                  background: "transparent",
-                  color: TEXT,
-                  border: `1px solid ${BORDER}`,
-                  fontWeight: 400,
-                }}
-              >
-                Select instead
-              </button>
+                <button
+                  onClick={() => {
+                    setState((s) => ({ ...s, selected: purgeChoice.to }));
+                    setPurgeChoice(null);
+                  }}
+                  className="flex-1 py-3 rounded-2xl text-[13px] transition-all duration-150 hover:opacity-80 hover:-translate-y-[1px]"
+                  style={{
+                    background: "transparent",
+                    color: TEXT,
+                    border: `1px solid ${BORDER}`,
+                    fontWeight: 400,
+                  }}
+                >
+                  Select
+                </button>
+              </div>
 
               <button
                 onClick={() => setPurgeChoice(null)}
-                className="w-full py-2 text-[11px] transition-opacity"
+                className="w-full py-2 text-[11px] transition-all duration-150 hover:opacity-100 hover:-translate-y-[1px]"
                 style={{ color: TEXT, opacity: 0.55, fontWeight: 400 }}
               >
                 Cancel
