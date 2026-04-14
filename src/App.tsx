@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Color = "white" | "black";
 type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
-type Difficulty = "Easy" | "Medium" | "Hard" | "Master";
+type Difficulty = "Easy" | "Medium" | "Hard";
 type Mode = "human" | "cpu";
 type Square = `${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h"}${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
 
@@ -178,7 +178,7 @@ function initialState(): State {
     quietus: { white: [], black: [] },
     mode: "cpu",
     cpuColor: "black",
-    difficulty: "Hard",
+    difficulty: "Medium",
     status: "White to move.",
     winner: null,
     result: null,
@@ -613,13 +613,13 @@ function pickCpuMove(state: State) {
   if (!moves.length) return finalizeState({ ...state, turn: color });
   moves = orderMoves(viewedState, moves, color);
 
-  if (state.difficulty === "Easy") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
-  if (state.difficulty === "Medium") {
+  if (state.difficulty === "") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
+  if (state.difficulty === "Easy") {
     const captures = moves.filter((m) => m.to && (state.board[m.to] || state.enPassantTarget === m.to));
     return applyMove(state, captures[0] || moves[0]);
   }
 
-  const depth = state.difficulty === "Master" ? 2 : 1;
+  const depth = state.difficulty === "Hard" ? 2 : 1;
   let best = -Infinity;
   let bestMove = moves[0];
 
@@ -974,12 +974,12 @@ function createCpuWorker() {
       let moves = legalMoves(viewedState, color);
       if (!moves.length) return finalizeState({ ...state, turn: color });
       moves = orderMoves(viewedState, moves, color);
-      if (state.difficulty === "Easy") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
-      if (state.difficulty === "Medium") {
+      if (state.difficulty === "") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
+      if (state.difficulty === "Easy") {
         const captures = moves.filter((m) => m.to && (state.board[m.to] || state.enPassantTarget === m.to));
         return applyMove(state, captures[0] || moves[0]);
       }
-      const depth = state.difficulty === "Master" ? 2 : 1;
+      const depth = state.difficulty === "Hard" ? 2 : 1;
       let best = -Infinity;
       let bestMove = moves[0];
       for (const move of moves) {
@@ -1068,7 +1068,7 @@ function runSelfTests() {
     showRules: false,
     mode: "human",
     cpuColor: "black",
-    difficulty: "Easy",
+    difficulty: "",
     lastMove: null,
     flipped: false,
   };
@@ -1530,10 +1530,10 @@ export default function App() {
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Level</span>
                 <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
+                  
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
                   <option value="Hard">Hard</option>
-                  <option value="Master">Master</option>
                 </select>
               </label>
               {thinking && (
