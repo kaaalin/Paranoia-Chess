@@ -1303,6 +1303,7 @@ function FifthColumnCard({
 
 export default function App() {
   const [state, setState] = useState<State>(initialState);
+  const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const pendingRequestIdRef = useRef(0);
 
@@ -1369,11 +1370,12 @@ export default function App() {
 
   function reset() {
     pendingRequestIdRef.current += 1;
+    setPurgeChoice(null);
     setState(initialState());
   }
 
   function handleClick(sq: Square) {
-    if (state.winner || state.pendingPromotion) return;
+    if (state.winner || state.pendingPromotion || purgeChoice) return;
     if (state.mode === "cpu" && state.turn === state.cpuColor) return;
 
     if (!state.selected) {
@@ -1386,20 +1388,29 @@ export default function App() {
       return;
     }
 
-    if (state.board[sq]?.color === state.turn) {
-      setState((s) => ({ ...s, selected: sq }));
+    const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq);
+    const purgeMove = moves.find((m) => m.kind === "selfCapture");
+    const normalMove = moves.find((m) => m.kind !== "selfCapture");
+
+    if (purgeMove && state.board[sq]?.color === state.turn) {
+      setPurgeChoice({ from: state.selected, to: sq, move: purgeMove });
       return;
     }
 
-    const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq);
-    if (!moves.length) {
-      if (state.board[sq]?.color === state.turn && state.secrets[other(state.turn)].revealed) {
-        setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
+    if (normalMove) {
+      pendingRequestIdRef.current += 1;
+      setState((s) => applyMove(s, normalMove));
+      return;
+    }
+
+    if (state.board[sq]?.color === state.turn) {
+      if (state.secrets[other(state.turn)].revealed) {
+        setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed.", selected: sq }));
+      } else {
+        setState((s) => ({ ...s, selected: sq }));
       }
       return;
     }
-    pendingRequestIdRef.current += 1;
-    setState((s) => applyMove(s, moves[0]));
   }
 
   function handleDragStart(e: React.DragEvent<HTMLButtonElement>, sq: Square) {
@@ -1418,7 +1429,7 @@ export default function App() {
 
   function handleDrop(e: React.DragEvent<HTMLButtonElement>, sq: Square) {
     e.preventDefault();
-    if (state.winner || state.pendingPromotion || (state.mode === "cpu" && state.turn === state.cpuColor)) return;
+    if (state.winner || state.pendingPromotion || purgeChoice || (state.mode === "cpu" && state.turn === state.cpuColor)) return;
 
     const from = e.dataTransfer.getData("text/plain") as Square;
     if (!from) return;
@@ -1444,19 +1455,19 @@ export default function App() {
   }
 
   function handleReveal() {
-    if (!canReveal) return;
+    if (!canReveal || purgeChoice) return;
     if (state.mode === "cpu" && state.turn === state.cpuColor) return;
     pendingRequestIdRef.current += 1;
     setState((s) => applyMove(s, { from: "a1", kind: "reveal" }));
   }
 
   function handlePromotion(type: Exclude<PieceType, "K" | "P">) {
-    if (!state.pendingPromotion) return;
+    if (!state.pendingPromotion || purgeChoice) return;
     pendingRequestIdRef.current += 1;
     setState((s) => applyMove({ ...s, pendingPromotion: null }, { ...s.pendingPromotion!.moveBase, promotion: type }));
   }
 
-  const thinking = state.mode === "cpu" && state.turn === state.cpuColor && !state.pendingPromotion && !state.winner;
+  const thinking = state.mode === "cpu" && state.turn === state.cpuColor && !state.pendingPromotion && !state.winner && !purgeChoice;
 
   const valueMap: Record<PieceType, number> = { K: 0, Q: 9, R: 5, B: 3, N: 3, P: 1 };
   const whiteTotal = state.quietus.white.reduce((s, p) => s + valueMap[p.type], 0);
@@ -1670,6 +1681,47 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {purgeChoice && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md rounded-3xl p-5 border" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="text-xl font-semibold mb-3">Purge or select?</div>
+            <div className="text-sm opacity-90 mb-4" style={{ color: TEXT }}>
+              The selected piece on <strong>{purgeChoice.from}</strong> can legally purge your own piece on <strong>{purgeChoice.to}</strong>.
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  pendingRequestIdRef.current += 1;
+                  setState((s) => applyMove(s, purgeChoice.move));
+                  setPurgeChoice(null);
+                }}
+                className="flex-1 px-4 py-3 rounded-2xl font-semibold"
+                style={{ background: ACCENT, color: "#ffffff" }}
+              >
+                Purge it
+              </button>
+              <button
+                onClick={() => {
+                  setState((s) => ({ ...s, selected: purgeChoice.to }));
+                  setPurgeChoice(null);
+                }}
+                className="flex-1 px-4 py-3 rounded-2xl font-semibold"
+                style={{ background: PANEL_2, color: TEXT, border: `1px solid ${BORDER}` }}
+              >
+                Select it instead
+              </button>
+            </div>
+            <button
+              onClick={() => setPurgeChoice(null)}
+              className="mt-3 w-full px-4 py-2 rounded-2xl text-sm"
+              style={{ background: "transparent", color: TEXT, border: `1px solid ${BORDER}` }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {state.pendingPromotion && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
