@@ -411,11 +411,10 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
     next.quietus[quietusColor].push({ ...target });
     const enemyBeneficiary = other(target.color);
     const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
-    next.status = move.kind === "selfCapture"
-      ? wasHiddenEnemyAsset
-        ? `${state.turn} purged their own piece on ${move.to}. It was the opponent's fifth column.`
-        : `${state.turn} purged their own piece on ${move.to}.`
-      : `${state.turn} captured on ${move.to}.`;
+    // Do not reveal fifth column information in status
+      next.status = move.kind === "selfCapture"
+        ? `${state.turn} purged a piece on ${move.to}.`
+        : `${state.turn} captured on ${move.to}.`;
   }
 
   const movedPiece: Piece = { ...piece, moved: true };
