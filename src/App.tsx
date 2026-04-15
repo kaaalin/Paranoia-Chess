@@ -93,6 +93,7 @@ const coords = (sq: Square) => ({
 const inBounds = (f: number, r: number) => f >= 0 && f < 8 && r >= 1 && r <= 8;
 const originalColorFromPieceId = (pieceId: string): Color => (pieceId.startsWith("w-") ? "white" : "black");
 const canBePurgedTarget = (piece: Piece | null) => !!piece && (piece.type === "P" || piece.type === "B" || piece.type === "N" || !!piece.promotedFromPawn);
+const pieceName = (type: PieceType) => ({ K: "king", Q: "queen", R: "rook", B: "bishop", N: "knight", P: "pawn" }[type]);
 
 function cloneBoard(board: Record<Square, Piece | null>) {
   const out = {} as Record<Square, Piece | null>;
@@ -1472,7 +1473,14 @@ export default function App() {
     if (state.mode === "cpu" && state.turn === state.cpuColor) return;
 
     if (!state.selected) {
-      if (state.board[sq]?.color === state.turn) setState((s) => ({ ...s, selected: sq }));
+      if (state.board[sq]?.color === state.turn) {
+        const piece = state.board[sq];
+        setState((s) => ({
+          ...s,
+          selected: sq,
+          status: piece ? `Selected: ${pieceName(piece.type)} on ${sq}.` : s.status,
+        }));
+      }
       return;
     }
 
@@ -1530,7 +1538,11 @@ export default function App() {
         return;
       }
 
-      setState((s) => ({ ...s, selected: sq }));
+      setState((s) => ({
+          ...s,
+          selected: sq,
+          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
+        }));
       return;
     }
   }
@@ -1546,7 +1558,11 @@ export default function App() {
     }
     e.dataTransfer.setData("text/plain", sq);
     e.dataTransfer.effectAllowed = "move";
-    setState((s) => ({ ...s, selected: sq }));
+    setState((s) => ({
+          ...s,
+          selected: sq,
+          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
+        }));
   }
 
   function handleDrop(e: React.DragEvent<HTMLButtonElement>, sq: Square) {
@@ -1589,7 +1605,11 @@ export default function App() {
           return;
         }
 
-        setState((s) => ({ ...s, selected: sq }));
+        setState((s) => ({
+          ...s,
+          selected: sq,
+          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
+        }));
       }
       return;
     }
@@ -1912,7 +1932,11 @@ export default function App() {
 
                 <button
                   onClick={() => {
-                    setState((s) => ({ ...s, selected: purgeChoice.to }));
+                    setState((s) => ({
+                    ...s,
+                    selected: purgeChoice.to,
+                    status: s.board[purgeChoice.to] ? `Selected: ${pieceName(s.board[purgeChoice.to]!.type)} on ${purgeChoice.to}.` : s.status,
+                  }));
                     setPurgeChoice(null);
                   }}
                   className="flex-1 py-3 rounded-2xl text-[13px] transition-all duration-150 hover:opacity-80 hover:-translate-y-[1px]"
