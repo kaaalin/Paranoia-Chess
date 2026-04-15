@@ -1497,11 +1497,40 @@ export default function App() {
     }
 
     if (state.board[sq]?.color === state.turn) {
-      if (false) {
-        setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed.", selected: sq }));
-      } else {
-        setState((s) => ({ ...s, selected: sq }));
+      const target = state.board[sq];
+      const purgeNotAllowed = state.secrets[other(state.turn)].revealed;
+      const invalidTarget = !canBePurgedTarget(target);
+      // Combined message only when purging is already not allowed AND invalid target
+      // (ensures it never appears before purging is disabled)
+
+      if (purgeNotAllowed && invalidTarget) {
+        setState((s) => ({
+          ...s,
+          status: "Purging already not allowed, plus that only pawns, bishops, knights, or promoted pawns can be purged.",
+          selected: sq,
+        }));
+        return;
       }
+
+      if (invalidTarget) {
+        setState((s) => ({
+          ...s,
+          status: "Purging not allowed: only pawns, bishops, knights, or promoted pawns can be purged.",
+          selected: sq,
+        }));
+        return;
+      }
+
+      if (purgeNotAllowed) {
+        setState((s) => ({
+          ...s,
+          status: "Purging already not allowed: opponent's 'fifth column' has already been revealed.",
+          selected: sq,
+        }));
+        return;
+      }
+
+      setState((s) => ({ ...s, selected: sq }));
       return;
     }
   }
@@ -1530,11 +1559,37 @@ export default function App() {
     const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === from && m.to === sq);
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn) {
-        if (false) {
-          setState((s) => ({ ...s, status: "Purging is no longer allowed after your fifth column has been revealed." }));
-        } else {
-          setState((s) => ({ ...s, selected: sq }));
+        const target = state.board[sq];
+        const purgeNotAllowed = state.secrets[other(state.turn)].revealed;
+        const invalidTarget = !canBePurgedTarget(target);
+      // Combined message only when purging is already not allowed AND invalid target
+      // (ensures it never appears before purging is disabled)
+
+        if (purgeNotAllowed && invalidTarget) {
+          setState((s) => ({
+            ...s,
+            status: "Purging already not allowed, plus that only pawns, bishops, knights, or promoted pawns can be purged.",
+          }));
+          return;
         }
+
+        if (invalidTarget) {
+          setState((s) => ({
+            ...s,
+            status: "Purging not allowed: only pawns, bishops, knights, or promoted pawns can be purged.",
+          }));
+          return;
+        }
+
+        if (purgeNotAllowed) {
+          setState((s) => ({
+            ...s,
+            status: "Purging already not allowed: opponent's 'fifth column' has already been revealed.",
+          }));
+          return;
+        }
+
+        setState((s) => ({ ...s, selected: sq }));
       }
       return;
     }
