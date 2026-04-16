@@ -1489,7 +1489,9 @@ export default function App() {
       return;
     }
 
-    const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq);
+    const moves = legalMoves(state, state.turn).filter(
+      (m) => m.kind !== "reveal" && m.from === state.selected && m.to === sq,
+    );
     const purgeMove = moves.find((m) => m.kind === "selfCapture");
     const normalMove = humanMoveFromCandidates(moves.filter((m) => m.kind !== "selfCapture"));
 
@@ -1507,42 +1509,22 @@ export default function App() {
     if (state.board[sq]?.color === state.turn) {
       const target = state.board[sq];
       const purgeNotAllowed = state.secrets[other(state.turn)].revealed;
-      const invalidTarget = !canBePurgedTarget(target);
-      // Combined message only when purging is already not allowed AND invalid target
-      // (ensures it never appears before purging is disabled)
+      const validTarget = canBePurgedTarget(target);
 
-      if (purgeNotAllowed && invalidTarget) {
+      if (purgeNotAllowed && validTarget) {
         setState((s) => ({
           ...s,
-          status: "Purging already not allowed, plus that only pawns, bishops, knights, or promoted pawns can be purged.",
           selected: sq,
-        }));
-        return;
-      }
-
-      if (invalidTarget) {
-        setState((s) => ({
-          ...s,
-          status: "Purging not allowed: only pawns, bishops, knights, or promoted pawns can be purged.",
-          selected: sq,
-        }));
-        return;
-      }
-
-      if (purgeNotAllowed) {
-        setState((s) => ({
-          ...s,
           status: "Purging already not allowed: opponent's 'fifth column' has already been revealed.",
-          selected: sq,
         }));
         return;
       }
 
       setState((s) => ({
-          ...s,
-          selected: sq,
-          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
-        }));
+        ...s,
+        selected: sq,
+        status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
+      }));
       return;
     }
   }
@@ -1572,18 +1554,20 @@ export default function App() {
     const from = e.dataTransfer.getData("text/plain") as Square;
     if (!from) return;
 
-    const moves = legalMoves(state, state.turn).filter((m) => m.kind !== "reveal" && m.from === from && m.to === sq);
+    const moves = legalMoves(state, state.turn).filter(
+      (m) => m.kind !== "reveal" && m.from === from && m.to === sq,
+    );
+
     if (!moves.length) {
       if (state.board[sq]?.color === state.turn) {
         const target = state.board[sq];
         const purgeNotAllowed = state.secrets[other(state.turn)].revealed;
         const invalidTarget = !canBePurgedTarget(target);
-      // Combined message only when purging is already not allowed AND invalid target
-      // (ensures it never appears before purging is disabled)
 
         if (purgeNotAllowed && invalidTarget) {
           setState((s) => ({
             ...s,
+            selected: sq,
             status: "Purging already not allowed, plus that only pawns, bishops, knights, or promoted pawns can be purged.",
           }));
           return;
@@ -1592,6 +1576,7 @@ export default function App() {
         if (invalidTarget) {
           setState((s) => ({
             ...s,
+            selected: sq,
             status: "Purging not allowed: only pawns, bishops, knights, or promoted pawns can be purged.",
           }));
           return;
@@ -1600,6 +1585,7 @@ export default function App() {
         if (purgeNotAllowed) {
           setState((s) => ({
             ...s,
+            selected: sq,
             status: "Purging already not allowed: opponent's 'fifth column' has already been revealed.",
           }));
           return;
@@ -1611,6 +1597,13 @@ export default function App() {
           status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
         }));
       }
+      return;
+    }
+
+    const purgeMove = moves.find((m) => m.kind === "selfCapture");
+    if (purgeMove && state.board[sq]?.color === state.turn) {
+      pendingRequestIdRef.current += 1;
+      setState((s) => applyMove(s, purgeMove));
       return;
     }
 
