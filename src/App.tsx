@@ -562,19 +562,20 @@ function evaluate(state: State, forColor: Color) {
 }
 
 function moveHeuristic(state: State, move: Move, color: Color) {
-  if (move.kind === "reveal") return 80;
+  if (move.kind === "reveal") return 60;
   if (!move.to) return 0;
 
+  const piece = state.board[move.from];
   const target = state.board[move.to];
   let score = 0;
-  if (target) score += pieceValue(target.type) + 100;
-  if (!target && state.enPassantTarget === move.to) score += 130;
 
-  const next = applyMove({ ...state, turn: color }, move);
-  if (next.result && next.winner === color) score += 100000;
-  const enemyKing = findKing(next.board, other(color));
-  if (enemyKing && squareAttacked(next, enemyKing, color)) score += 60;
-  if (move.promotion) score += pieceValue(move.promotion);
+  if (target) {
+    score += 10 * pieceValue(target.type) - (piece ? pieceValue(piece.type) : 0);
+  }
+
+  if (!target && state.enPassantTarget === move.to) score += 120;
+  if (move.promotion) score += pieceValue(move.promotion) + 200;
+
   return score;
 }
 
@@ -621,13 +622,14 @@ function pickCpuMove(state: State) {
   if (!moves.length) return finalizeState({ ...state, turn: color });
   moves = orderMoves(viewedState, moves, color);
 
-  if (state.difficulty === "") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
+  if (moves.length === 1) return applyMove(state, moves[0]);
   if (state.difficulty === "Easy") {
     const captures = moves.filter((m) => m.to && (state.board[m.to] || state.enPassantTarget === m.to));
     return applyMove(state, captures[0] || moves[0]);
   }
 
   const depth = state.difficulty === "Hard" ? 2 : 1;
+
   let best = -Infinity;
   let bestMove = moves[0];
 
@@ -934,17 +936,16 @@ function createCpuWorker() {
       return score;
     };
     const moveHeuristic = (state, move, color) => {
-      if (move.kind === "reveal") return 80;
+      if (move.kind === "reveal") return 60;
       if (!move.to) return 0;
+      const piece = state.board[move.from];
       const target = state.board[move.to];
       let score = 0;
-      if (target) score += pieceValue(target.type) + 100;
-      if (!target && state.enPassantTarget === move.to) score += 130;
-      const next = applyMove({ ...state, turn: color }, move);
-      if (next.result && next.winner === color) score += 100000;
-      const enemyKing = findKing(next.board, other(color));
-      if (enemyKing && squareAttacked(next, enemyKing, color)) score += 60;
-      if (move.promotion) score += pieceValue(move.promotion);
+      if (target) {
+        score += 10 * pieceValue(target.type) - (piece ? pieceValue(piece.type) : 0);
+      }
+      if (!target && state.enPassantTarget === move.to) score += 120;
+      if (move.promotion) score += pieceValue(move.promotion) + 200;
       return score;
     };
     const orderMoves = (state, moves, color) => [...moves].sort((a, b) => moveHeuristic(state, b, color) - moveHeuristic(state, a, color));
@@ -982,7 +983,7 @@ function createCpuWorker() {
       let moves = legalMoves(viewedState, color);
       if (!moves.length) return finalizeState({ ...state, turn: color });
       moves = orderMoves(viewedState, moves, color);
-      if (state.difficulty === "") return applyMove(state, moves[Math.floor(Math.random() * moves.length)]);
+      if (moves.length === 1) return applyMove(state, moves[0]);
       if (state.difficulty === "Easy") {
         const captures = moves.filter((m) => m.to && (state.board[m.to] || state.enPassantTarget === m.to));
         return applyMove(state, captures[0] || moves[0]);
@@ -993,7 +994,10 @@ function createCpuWorker() {
       for (const move of moves) {
         const next = applyMove(state, move);
         const score = minimax(next, depth, -Infinity, Infinity, false, color);
-        if (score > best) { best = score; bestMove = move; }
+        if (score > best) {
+          best = score;
+          bestMove = move;
+        }
       }
       return applyMove(state, bestMove);
     };
@@ -1455,7 +1459,7 @@ export default function App() {
         requestId,
         state: snapshot,
       } satisfies WorkerRequest);
-    }, 120);
+    }, 10);
 
     return () => {
       window.clearTimeout(timer);
