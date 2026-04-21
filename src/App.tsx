@@ -1695,11 +1695,13 @@ export default function App() {
             </div>
           </div>
 
-          {((state.result || state.status) && (state.result || state.status) !== "White to move.") && (
-            <div className="px-1 text-sm leading-snug" style={{ color: TEXT }}>
-              {state.result || state.status}
-            </div>
-          )}
+          <div className="px-1 text-sm leading-snug min-h-[18px]" style={{ color: TEXT, textAlign: "center" }}>
+            {state.result
+              ? state.result
+              : (state.status && state.status !== "White to move.")
+                ? state.status
+                : "Paranoia Chess"}
+          </div>
 
           <div className="rounded-[28px] p-2 border shadow-xl mx-auto w-full max-w-[min(100vw-24px,560px)]" style={{ background: PANEL, borderColor: BORDER }}>
             <div className="grid grid-cols-[18px_1fr] grid-rows-[1fr_18px] gap-x-1 gap-y-1 items-stretch">
