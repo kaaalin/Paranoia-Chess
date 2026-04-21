@@ -1722,7 +1722,7 @@ export default function App() {
                         onDragStart={handleDragStart}
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
-                        pieceSize="2.6rem"
+                        pieceSize="2.3rem"
                       />
                     );
                   }),
