@@ -1664,8 +1664,199 @@ export default function App() {
 
   return (
     <div className="min-h-screen text-[#0f172a]" style={{ background: PAGE_BG }}>
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
-        <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(520px,1fr)_280px] gap-4">
+      <div className="max-w-7xl mx-auto p-3 md:p-6">
+        <div className="xl:hidden space-y-3">
+          <div className="rounded-3xl p-3 border" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={LOGO_SRC}
+                  alt="Paranoia Chess logo"
+                  className={thinking ? "w-11 h-11 object-contain animate-pulse" : "w-11 h-11 object-contain"}
+                />
+                <div className="min-w-0">
+                  <div className="text-lg font-semibold leading-tight">Paranoia Chess</div>
+                  <div className="text-xs opacity-75">Turn: <span className="font-semibold capitalize">{state.turn}</span></div>
+                </div>
+              </div>
+              {thinking && (
+                <div className="text-[10px] shrink-0" style={{ color: ACCENT, letterSpacing: "0.18em" }}>
+                  t h i n k i n g ...
+                </div>
+              )}
+            </div>
+
+            <div className="min-h-14 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
+              {state.result || state.status}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <button onClick={reset} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: "#ffffff", color: TEXT }}>
+                New Game
+              </button>
+              <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: PANEL_2, color: TEXT }}>
+                Flip Board
+              </button>
+              <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: ACCENT, color: "#ffffff" }}>
+                Rules
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] p-2 border shadow-xl mx-auto w-full max-w-[min(100vw-24px,560px)]" style={{ background: PANEL, borderColor: BORDER }}>
+            <div className="grid grid-cols-[18px_1fr] grid-rows-[1fr_18px] gap-x-1 gap-y-1 items-stretch">
+              <div className="grid grid-rows-8">
+                {boardOrderRanks.map((rank) => (
+                  <div key={`m-rank-${rank}`} className="flex items-center justify-center text-[10px] select-none" style={{ color: ACCENT }}>
+                    {rank}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-8 overflow-hidden rounded-2xl w-full">
+                {boardOrderRanks.map((rank) =>
+                  boardOrderFiles.map((file) => {
+                    const sq = `${file}${rank}` as Square;
+                    const lm = state.lastMove;
+                    const highlight: "from" | "to" | "none" = lm?.from === sq ? "from" : lm?.to === sq ? "to" : "none";
+                    return (
+                      <SquareView
+                        key={`mobile-${sq}`}
+                        sq={sq}
+                        piece={state.board[sq]}
+                        selected={state.selected === sq}
+                        highlight={highlight}
+                        onClick={() => handleClick(sq)}
+                        onDragStart={handleDragStart}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                      />
+                    );
+                  }),
+                )}
+              </div>
+
+              <div />
+
+              <div className="grid grid-cols-8">
+                {boardOrderFiles.map((file) => (
+                  <div key={`m-file-${file}`} className="flex items-center justify-center text-[10px] lowercase select-none" style={{ color: ACCENT }}>
+                    {file}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-3xl p-3 border space-y-2" style={{ background: PANEL, borderColor: BORDER }}>
+              <div className="text-base font-semibold">Computer</div>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>Mode</span>
+                <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                  <option value="human">Human vs Human</option>
+                  <option value="cpu">Human vs Computer</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>Computer plays</span>
+                <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
+                  <option value="white">White</option>
+                  <option value="black">Black</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>Level</span>
+                <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="rounded-3xl p-3 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
+              <div className="text-base font-semibold">Fifth column</div>
+              {state.mode === "human" ? (
+                <div className="flex justify-center gap-2">
+                  {(["white", "black"] as Color[]).map((side) => {
+                    const sideSecret = state.secrets[side];
+                    const currentSquare = (Object.keys(state.board) as Square[]).find((sq) => state.board[sq]?.id === sideSecret.pieceId) || null;
+                    const sidePiece = currentSquare ? state.board[currentSquare] : null;
+                    const originalPiece = sidePiece || {
+                      id: sideSecret.pieceId,
+                      type: sideSecret.pieceId.split("-")[1] as PieceType,
+                      color: side,
+                      moved: true,
+                    };
+
+                    return (
+                      <div key={`mobile-wrap-${side}`} className="flex flex-col items-center gap-1">
+                        <div className="text-[9px] uppercase tracking-[0.12em]" style={{ color: "#000", opacity: 0.7 }}>{side}</div>
+                        <FifthColumnCard
+                          revealed={state.peek === side}
+                          info={{ secret: sideSecret, piece: sidePiece, originalPiece }}
+                          onToggle={() => setState((s) => ({ ...s, peek: s.peek === side ? "none" : side }))}
+                          onHide={() => setState((s) => ({ ...s, peek: "none" }))}
+                          canReveal={!state.winner && !state.pendingPromotion && !sideSecret.revealed && state.turn === side}
+                          isSecretRevealed={sideSecret.revealed}
+                          onReveal={() => {
+                            if (state.turn === side) handleReveal();
+                          }}
+                          compact
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <FifthColumnCard
+                  revealed={state.peek === peekSide}
+                  info={visibleIntel ? { secret: visibleIntel.secret, piece: visibleIntel.piece, originalPiece: visibleIntel.originalPiece } : null}
+                  onToggle={() => setState((s) => ({ ...s, peek: s.peek === peekSide ? "none" : peekSide }))}
+                  onHide={() => setState((s) => ({ ...s, peek: "none" }))}
+                  canReveal={canReveal}
+                  isSecretRevealed={state.secrets[peekSide].revealed}
+                  onReveal={handleReveal}
+                  compact
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <CapturedRow
+              title="Quietus · Black captured pieces"
+              pieces={state.quietus.black}
+              score={blackScore}
+              fifthColumnPieceIds={[
+                state.secrets.white.revealed ? state.secrets.white.pieceId : "",
+                state.secrets.black.revealed ? state.secrets.black.pieceId : "",
+              ].filter(Boolean)}
+            />
+            <CapturedRow
+              title="Quietus · White captured pieces"
+              pieces={state.quietus.white}
+              score={whiteScore}
+              fifthColumnPieceIds={[
+                state.secrets.white.revealed ? state.secrets.white.pieceId : "",
+                state.secrets.black.revealed ? state.secrets.black.pieceId : "",
+              ].filter(Boolean)}
+            />
+          </div>
+
+          <details className="rounded-3xl p-3 border" style={{ background: PANEL, borderColor: BORDER }}>
+            <summary className="cursor-pointer text-base font-semibold" style={{ color: TEXT }}>Variant summary</summary>
+            <div className="text-sm space-y-2 opacity-90 mt-3">
+              <p>Each player secretly owns one 'fifth column' piece - a pawn, bishop, or knight on the opponent's side.</p>
+              <p>On your turn, you may reveal that piece instead of moving. It flips color and joins your side.</p>
+              <p>Before the fifth column in one's side is revealed, the player may purge their own pawns, bishops, and knights in an episode of paranoia.</p>
+              <p>All the rest is like the classical chess.</p>
+            </div>
+          </details>
+        </div>
+
+        <div className="hidden xl:grid grid-cols-[280px_minmax(520px,1fr)_280px] gap-4">
           <div className="space-y-4">
             <div className="rounded-3xl p-4 border" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="flex items-center gap-3 mb-3">
@@ -1701,22 +1892,21 @@ export default function App() {
               <div className="text-lg font-semibold">Computer opponent</div>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Mode</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
                   <option value="human">Human vs Human</option>
                   <option value="cpu">Human vs Computer</option>
                 </select>
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Computer plays</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
                   <option value="white">White</option>
                   <option value="black">Black</option>
                 </select>
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Level</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
-                  
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
                   <option value="Hard">Hard</option>
