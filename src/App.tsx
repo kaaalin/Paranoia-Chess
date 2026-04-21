@@ -45,7 +45,7 @@ type State = {
   status: string;
   winner: Color | null;
   result: string | null;
-  showRules: boolean;
+  showInfo: boolean;
   secrets: { white: SecretInfo; black: SecretInfo };
   peek: "none" | Color;
   pendingPromotion: PendingPromotion | null;
@@ -183,7 +183,7 @@ function initialState(): State {
     status: "White to move.",
     winner: null,
     result: null,
-    showRules: false,
+    showInfo: false,
     secrets: createSecrets(board),
     peek: "none",
     pendingPromotion: null,
@@ -1683,10 +1683,10 @@ export default function App() {
               />
               <div className="grid grid-cols-3 gap-2 flex-1">
                 <button onClick={reset} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: "#ffffff", color: TEXT }}>
-                  New Game
+                  New
                 </button>
                 <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: PANEL_2, color: TEXT }}>
-                  Flip Board
+                  Flip
                 </button>
                 <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: ACCENT, color: "#ffffff" }}>
                   Rules
@@ -1868,10 +1868,10 @@ export default function App() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: "#ffffff", color: TEXT }}>
-                  New Game
+                  New
                 </button>
                 <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2, color: TEXT }}>
-                  Flip Board
+                  Flip
                 </button>
               </div>
               <div className="mt-4 text-sm opacity-80">
