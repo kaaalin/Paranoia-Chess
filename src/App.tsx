@@ -1215,7 +1215,7 @@ function SquareView({
             justifyContent: "center",
             width: "100%",
             height: "100%",
-            transform: "translateY(2%)",
+            transform: "translateY(4%)",
             textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
             WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
             color: piece.color === "white" ? "#ffffff" : "#000000",
