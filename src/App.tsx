@@ -1689,7 +1689,7 @@ export default function App() {
                   Flip
                 </button>
                 <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: ACCENT, color: "#ffffff" }}>
-                  Rules
+                  Info
                 </button>
               </div>
             </div>
