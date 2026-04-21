@@ -1170,6 +1170,7 @@ function SquareView({
   onDragStart,
   onDrop,
   onDragOver,
+  pieceSize = "3.4rem",
 }: {
   sq: Square;
   piece: Piece | null;
@@ -1179,6 +1180,7 @@ function SquareView({
   onDragStart: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
+  pieceSize?: string;
 }) {
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
@@ -1206,7 +1208,7 @@ function SquareView({
       {piece && (
         <div
           style={{
-            fontSize: "3.4rem",
+            fontSize: pieceSize,
             lineHeight: 1,
             textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
             WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
@@ -1666,42 +1668,32 @@ export default function App() {
     <div className="min-h-screen text-[#0f172a]" style={{ background: PAGE_BG }}>
       <div className="max-w-7xl mx-auto p-3 md:p-6">
         <div className="xl:hidden space-y-3">
-          <div className="rounded-3xl p-3 border" style={{ background: PANEL, borderColor: BORDER }}>
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="flex items-center gap-3 min-w-0">
-                <img
-                  src={LOGO_SRC}
-                  alt="Paranoia Chess logo"
-                  className={thinking ? "w-11 h-11 object-contain animate-pulse" : "w-11 h-11 object-contain"}
-                />
-                <div className="min-w-0">
-                  <div className="text-lg font-semibold leading-tight">Paranoia Chess</div>
-                  <div className="text-xs opacity-75">Turn: <span className="font-semibold capitalize">{state.turn}</span></div>
-                </div>
+          <div className="rounded-3xl p-3" style={{ background: PANEL }}>
+            <div className="flex items-center justify-between gap-3">
+              <img
+                src={LOGO_SRC}
+                alt="Paranoia Chess logo"
+                className={thinking ? "w-11 h-11 object-contain animate-pulse shrink-0" : "w-11 h-11 object-contain shrink-0"}
+              />
+              <div className="grid grid-cols-3 gap-2 flex-1">
+                <button onClick={reset} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: "#ffffff", color: TEXT }}>
+                  New Game
+                </button>
+                <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: PANEL_2, color: TEXT }}>
+                  Flip Board
+                </button>
+                <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: ACCENT, color: "#ffffff" }}>
+                  Rules
+                </button>
               </div>
-              {thinking && (
-                <div className="text-[10px] shrink-0" style={{ color: ACCENT, letterSpacing: "0.18em" }}>
-                  t h i n k i n g ...
-                </div>
-              )}
-            </div>
-
-            <div className="min-h-14 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
-              {state.result || state.status}
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <button onClick={reset} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: "#ffffff", color: TEXT }}>
-                New Game
-              </button>
-              <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: PANEL_2, color: TEXT }}>
-                Flip Board
-              </button>
-              <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: ACCENT, color: "#ffffff" }}>
-                Rules
-              </button>
             </div>
           </div>
+
+          {((state.result || state.status) && (state.result || state.status) !== "White to move.") && (
+            <div className="px-1 text-sm leading-snug" style={{ color: TEXT }}>
+              {state.result || state.status}
+            </div>
+          )}
 
           <div className="rounded-[28px] p-2 border shadow-xl mx-auto w-full max-w-[min(100vw-24px,560px)]" style={{ background: PANEL, borderColor: BORDER }}>
             <div className="grid grid-cols-[18px_1fr] grid-rows-[1fr_18px] gap-x-1 gap-y-1 items-stretch">
@@ -1730,6 +1722,7 @@ export default function App() {
                         onDragStart={handleDragStart}
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
+                        pieceSize="2.6rem"
                       />
                     );
                   }),
@@ -1971,6 +1964,7 @@ export default function App() {
                           onDragStart={handleDragStart}
                           onDrop={handleDrop}
                           onDragOver={handleDragOver}
+                          pieceSize="3.4rem"
                         />
                       );
                     }),
