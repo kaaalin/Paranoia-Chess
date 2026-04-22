@@ -1754,8 +1754,8 @@ export default function App() {
               <div className="text-base font-semibold">Mode</div>
               <label className="flex flex-col gap-1 text-sm">
                 <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
-                  <option value="human">Human vs Human</option>
-                  <option value="cpu">Human vs Computer</option>
+                  <option value="human">To Human</option>
+                  <option value="cpu">To Computer</option>
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
