@@ -1685,11 +1685,14 @@ export default function App() {
                 <button onClick={reset} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: "#ffffff", color: TEXT }}>
                   New
                 </button>
-                <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-3 py-2 rounded-2xl lor: TEXT }}>
+                <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: PANEL_2, color: TEXT }}>
                   Flip
                 </button>
                 <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: ACCENT, color: "#ffffff" }}>
-                           </div>
+                  Info
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="px-1 text-sm leading-none min-h-[10px]" style={{ color: TEXT, textAlign: "left", marginTop: "-3px", marginBottom: "-3px" }}>
@@ -1750,21 +1753,23 @@ export default function App() {
             <div className="rounded-3xl p-3 border space-y-2" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-base font-semibold">Mode</div>
               <label className="flex flex-col gap-1 text-sm">
-                <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode:        <option value="human">To Human</option>
+                <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
+                  <option value="human">To Human</option>
                   <option value="cpu">To Computer</option>
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>Computer plays</span>
                 <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
-  ite</option>
+                  <option value="white">White</option>
                   <option value="black">Black</option>
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>Level</span>
                 <select className="rounded-xl px-3 py-2 text-sm" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
-                  <option value="ption value="Medium">Medium</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
                   <option value="Hard">Hard</option>
                 </select>
               </label>
