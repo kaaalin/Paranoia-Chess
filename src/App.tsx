@@ -1695,7 +1695,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="px-1 text-sm leading-snug min-h-[18px]" style={{ color: TEXT, textAlign: "center" }}>
+          <div className="px-1 text-sm leading-none min-h-[12px] -mt-2 -mb-2" style={{ color: TEXT, textAlign: "left" }}>
             {state.result
               ? state.result
               : (state.status && state.status !== "White to move.")
