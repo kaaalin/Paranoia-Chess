@@ -1242,14 +1242,14 @@ function CapturedRow({
   const quietusColor: Color = title.includes("Black captured") ? "black" : "white";
 
   return (
-    <div className="rounded-2xl p-3 border" style={{ background: PANEL_2, borderColor: BORDER }}>
+    <div className="rounded-2xl p-2 border" style={{ background: PANEL_2, borderColor: BORDER }}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-semibold">{title}</div>
         <div className="text-sm font-semibold" style={{ color: TEXT }}>
           {score > 0 ? score : ""}
         </div>
       </div>
-      <div className="min-h-12 flex flex-wrap gap-1 text-3xl">
+      <div className="min-h-8 flex flex-wrap gap-1 text-2xl">
         {pieces.length ? pieces.map((p, i) => {
           const isFifthColumn = fifthColumnPieceIds.includes(p.id);
           const displayColor: Color = isFifthColumn ? quietusColor : p.color;
@@ -1842,7 +1842,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-2">
             <CapturedRow
               title="Quietus · Black captured pieces"
               pieces={state.quietus.black}
