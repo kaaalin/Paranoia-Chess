@@ -75,6 +75,11 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
+const ALT_GLYPHS: Record<Color, Record<PieceType, string>> = {
+  white: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
+  black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
+};
+
 const WOOD_LIGHT = "#dcc4a1";
 const PANEL = "#f4f1ec";
 const PANEL_2 = "#e8e4de";
@@ -1171,6 +1176,7 @@ function SquareView({
   onDrop,
   onDragOver,
   pieceSize = "3.4rem",
+  useAltGlyphs = false,
 }: {
   sq: Square;
   piece: Piece | null;
@@ -1181,6 +1187,7 @@ function SquareView({
   onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
   pieceSize?: string;
+  useAltGlyphs?: boolean;
 }) {
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
@@ -1191,6 +1198,8 @@ function SquareView({
       : highlight === "to"
         ? "0 0 0 3px rgba(74,222,128,.75) inset"
         : "none";
+
+  const glyphs = useAltGlyphs ? ALT_GLYPHS : GLYPHS;
 
   return (
     <button
@@ -1216,12 +1225,16 @@ function SquareView({
             width: "100%",
             height: "100%",
             transform: "translateY(4%)",
-            textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
-            WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
+            textShadow: piece.color === "white"
+              ? (useAltGlyphs ? "0 0 0.35px #000" : "0 0 0.8px #000, 0 0 0.8px #000")
+              : "none",
+            WebkitTextStroke: piece.color === "white"
+              ? (useAltGlyphs ? "0.25px #000" : "0.6px #000")
+              : undefined,
             color: piece.color === "white" ? "#ffffff" : "#000000",
           }}
         >
-          {GLYPHS[piece.color][piece.type]}
+          {glyphs[piece.color][piece.type]}
         </div>
       )}
     </button>
@@ -1420,6 +1433,7 @@ export default function App() {
   }, []);
   const isAndroid = /Android/i.test(navigator.userAgent);
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isNonAndroidMobile = !isAndroid && /iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const [state, setState] = useState<State>(initialState);
   const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -1766,6 +1780,7 @@ export default function App() {
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         pieceSize="2.1rem"
+                        useAltGlyphs={isNonAndroidMobile}
                       />
                     );
                   }),
@@ -2032,6 +2047,7 @@ export default function App() {
                           onDrop={handleDrop}
                           onDragOver={handleDragOver}
                           pieceSize="3.4rem"
+                          useAltGlyphs={false}
                         />
                       );
                     }),
