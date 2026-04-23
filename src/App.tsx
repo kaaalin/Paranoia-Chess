@@ -1864,6 +1864,29 @@ export default function App() {
               <p>All the rest is like the classical chess.</p>
             </div>
           </details>
+
+          <div style={{ marginTop: "6px" }}>
+            <div style={{ fontSize: "13px", letterSpacing: "0.06em", marginBottom: "4px", color: ACCENT, fontWeight: 500 }}>
+              Other Yanevi's Variants
+            </div>
+            <a
+              href="https://www.kafkachess.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Other Yanevi's Variants"
+              className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors duration-200 hover:bg-[rgba(176,122,82,0.12)]"
+              style={{ color: TEXT, textDecoration: "none" }}
+            >
+              <img
+                src="/cover-bmac.png"
+                alt="Kafka Chess"
+                style={{ width: "28px", height: "28px", objectFit: "contain" }}
+              />
+              <span style={{ fontSize: "11.5px", opacity: 0.85 }}>
+                Kafka Chess (pieces transform based on the square they step on)
+              </span>
+            </a>
+          </div>
         </div>
 
         <div className="hidden xl:grid grid-cols-[280px_minmax(520px,1fr)_280px] gap-4">
