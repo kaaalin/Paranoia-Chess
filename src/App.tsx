@@ -1408,6 +1408,8 @@ function FifthColumnCard({
 }
 
 export default function App() {
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [state, setState] = useState<State>(initialState);
   const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -1695,7 +1697,15 @@ export default function App() {
             </div>
           </div>
 
-          <div className="px-1 text-sm leading-none min-h-[10px]" style={{ color: TEXT, textAlign: "left", marginTop: "-3px", marginBottom: "-3px" }}>
+          <div
+            className="px-1 text-sm leading-none min-h-[10px]"
+            style={{
+              color: TEXT,
+              textAlign: "left",
+              marginTop: "-3px",
+              marginBottom: isAndroid ? "-3px" : "3px",
+            }}
+          >
             {state.result
               ? state.result
               : (state.status && state.status !== "White to move.")
