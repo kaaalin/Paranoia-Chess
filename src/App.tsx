@@ -1865,7 +1865,7 @@ export default function App() {
             </div>
           </details>
 
-          <div style={{ marginTop: isAndroid ? "9px" : "6px" }}>
+          <div style={{ marginTop: isAndroid ? "12px" : "6px" }}>
             <div style={{ fontSize: "13px", letterSpacing: "0.06em", marginBottom: "4px", color: ACCENT, fontWeight: 500 }}>
               Other Yanevi's Variants
             </div>
