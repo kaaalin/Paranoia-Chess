@@ -1233,23 +1233,25 @@ function CapturedRow({
   pieces,
   score,
   fifthColumnPieceIds,
+  compact = false,
 }: {
   title: string;
   pieces: Piece[];
   score: number;
   fifthColumnPieceIds: string[];
+  compact?: boolean;
 }) {
   const quietusColor: Color = title.includes("Black captured") ? "black" : "white";
 
   return (
-    <div className="rounded-2xl p-2 border" style={{ background: PANEL_2, borderColor: BORDER }}>
+    <div className={compact ? "rounded-2xl p-2 border" : "rounded-2xl p-3 border"} style={{ background: PANEL_2, borderColor: BORDER }}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-semibold">{title}</div>
         <div className="text-sm font-semibold" style={{ color: TEXT }}>
           {score > 0 ? score : ""}
         </div>
       </div>
-      <div className="min-h-8 flex flex-wrap gap-1 text-2xl">
+      <div className={compact ? "min-h-8 flex flex-wrap gap-1 text-2xl" : "min-h-12 flex flex-wrap gap-1 text-3xl"}>
         {pieces.length ? pieces.map((p, i) => {
           const isFifthColumn = fifthColumnPieceIds.includes(p.id);
           const displayColor: Color = isFifthColumn ? quietusColor : p.color;
@@ -1262,7 +1264,7 @@ function CapturedRow({
               key={`${p.id}-${i}`}
               className="relative inline-flex items-start justify-start"
               style={{
-                fontSize: "1.32rem",
+                fontSize: compact ? "1.32rem" : "2.2rem",
                 lineHeight: 1,
                 textShadow: displayColor === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
                 WebkitTextStroke: displayColor === "white" ? "0.6px #000" : undefined,
@@ -1844,6 +1846,7 @@ export default function App() {
 
           <div className="grid grid-cols-1 gap-2">
             <CapturedRow
+              compact
               title="Quietus · Black captured pieces"
               pieces={state.quietus.black}
               score={blackScore}
@@ -1853,6 +1856,7 @@ export default function App() {
               ].filter(Boolean)}
             />
             <CapturedRow
+              compact
               title="Quietus · White captured pieces"
               pieces={state.quietus.white}
               score={whiteScore}
