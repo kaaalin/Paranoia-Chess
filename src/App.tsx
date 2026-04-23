@@ -75,14 +75,14 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
-const MOBILE_NON_ANDROID_GLYPHS: Record<PieceType, string> = {
-  K: "♚︎",
-  Q: "♛︎",
-  R: "♜︎",
-  B: "♝︎",
-  N: "♞︎",
-  P: "♟︎",
-};
+const WOOD_LIGHT = "#dcc4a1";
+const PANEL = "#f4f1ec";
+const PANEL_2 = "#e8e4de";
+const ACCENT = "#b07a52";
+const PAGE_BG = "#f6f1ea";
+const TEXT = "#3a332c";
+const BORDER = "#d8cfc2";
+const LOGO_SRC = "/logo-paranoia.svg";
 
 const other = (c: Color): Color => (c === "white" ? "black" : "white");
 const keyOf = (f: number, r: number) => `${FILES[f]}${r}` as Square;
@@ -1171,7 +1171,6 @@ function SquareView({
   onDrop,
   onDragOver,
   pieceSize = "3.4rem",
-  useMobileNonAndroidGlyphs = false,
 }: {
   sq: Square;
   piece: Piece | null;
@@ -1182,7 +1181,6 @@ function SquareView({
   onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
   pieceSize?: string;
-  useMobileNonAndroidGlyphs?: boolean;
 }) {
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
@@ -1193,8 +1191,6 @@ function SquareView({
       : highlight === "to"
         ? "0 0 0 3px rgba(74,222,128,.75) inset"
         : "none";
-
-  const glyph = piece ? (useMobileNonAndroidGlyphs ? MOBILE_NON_ANDROID_GLYPHS[piece.type] : GLYPHS[piece.color][piece.type]) : "";
 
   return (
     <button
@@ -1225,7 +1221,7 @@ function SquareView({
             color: piece.color === "white" ? "#ffffff" : "#000000",
           }}
         >
-          {glyph}
+          {GLYPHS[piece.color][piece.type]}
         </div>
       )}
     </button>
@@ -1424,7 +1420,6 @@ export default function App() {
   }, []);
   const isAndroid = /Android/i.test(navigator.userAgent);
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isNonAndroidMobile = !isAndroid && /iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const [state, setState] = useState<State>(initialState);
   const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -1771,7 +1766,6 @@ export default function App() {
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         pieceSize="2.1rem"
-                        useMobileNonAndroidGlyphs={isNonAndroidMobile}
                       />
                     );
                   }),
@@ -2038,7 +2032,6 @@ export default function App() {
                           onDrop={handleDrop}
                           onDragOver={handleDragOver}
                           pieceSize="3.4rem"
-                          useMobileNonAndroidGlyphs={false}
                         />
                       );
                     }),
