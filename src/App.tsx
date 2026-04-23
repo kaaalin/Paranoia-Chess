@@ -71,7 +71,7 @@ const RANKS_DESC = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 const PROMOTION_TYPES: Exclude<PieceType, "K" | "P">[] = ["Q", "R", "B", "N"];
 
 const GLYPHS: Record<Color, Record<PieceType, string>> = {
-  white: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
+  white: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
@@ -1206,25 +1206,33 @@ function SquareView({
       }}
     >
       {piece && (
-        <div
+        <svg
+          viewBox="0 0 100 100"
+          aria-hidden="true"
           style={{
             position: "absolute",
             inset: 0,
-            fontSize: pieceSize,
-            fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
-            lineHeight: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transform: "translateY(0)",
-            textShadow: piece.color === "white" ? "none" : "none",
-            WebkitTextFillColor: piece.color === "white" ? "#ffffff" : "#000000",
-            WebkitTextStroke: piece.color === "white" ? "1px #000000" : "0px transparent",
-            color: piece.color === "white" ? "#ffffff" : "#000000",
+            width: "100%",
+            height: "100%",
+            overflow: "visible",
+            pointerEvents: "none",
           }}
         >
-          {GLYPHS[piece.color][piece.type]}
-        </div>
+          <text
+            x="50"
+            y="52"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize="74"
+            fontFamily='"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif'
+            fill={piece.color === "white" ? "#ffffff" : "#000000"}
+            stroke={piece.color === "white" ? "#000000" : "transparent"}
+            strokeWidth={piece.color === "white" ? "2.2" : "0"}
+            paintOrder="stroke fill"
+          >
+            {GLYPHS[piece.color][piece.type]}
+          </text>
+        </svg>
       )}
     </button>
   );
@@ -1277,7 +1285,15 @@ function CapturedRow({
                 color: displayColor === "white" ? "#ffffff" : "#000000",
               }}
             >
-              {GLYPHS[displayColor][p.type]}
+              <span
+                style={{
+                  color: displayColor === "white" ? "#ffffff" : "#000000",
+                  WebkitTextFillColor: displayColor === "white" ? "#ffffff" : "#000000",
+                  WebkitTextStroke: displayColor === "white" ? "1.2px #000000" : "0px transparent",
+                }}
+              >
+                {GLYPHS[displayColor][p.type]}
+              </span>
               {isFifthColumn && (
                 <span
                   style={{
@@ -1389,7 +1405,15 @@ function FifthColumnCard({
                     opacity: info.piece ? 1 : 0.5,
                   }}
                 >
-                  {GLYPHS[displayPiece.color][displayPiece.type]}
+                  <span
+                    style={{
+                      color: displayPiece.color === "white" ? "#ffffff" : "#000000",
+                      WebkitTextFillColor: displayPiece.color === "white" ? "#ffffff" : "#000000",
+                      WebkitTextStroke: displayPiece.color === "white" ? "1.4px #000000" : "0px transparent",
+                    }}
+                  >
+                    {GLYPHS[displayPiece.color][displayPiece.type]}
+                  </span>
                 </div>
               ) : (
                 <div className="text-xs opacity-70 px-2">Unknown</div>
@@ -2243,7 +2267,15 @@ export default function App() {
                       WebkitTextStroke: isWhite ? "1px #000000" : "0px transparent",
                     }}
                   >
-                    {GLYPHS[state.pendingPromotion!.color][type]}
+                    <span
+                      style={{
+                        color: isWhite ? "#ffffff" : "#000000",
+                        WebkitTextFillColor: isWhite ? "#ffffff" : "#000000",
+                        WebkitTextStroke: isWhite ? "1.4px #000000" : "0px transparent",
+                      }}
+                    >
+                      {GLYPHS[state.pendingPromotion!.color][type]}
+                    </span>
                   </button>
                 );
               })}
