@@ -1262,7 +1262,7 @@ function CapturedRow({
               key={`${p.id}-${i}`}
               className="relative inline-flex items-start justify-start"
               style={{
-                fontSize: "2.2rem",
+                fontSize: "1.32rem",
                 lineHeight: 1,
                 textShadow: displayColor === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
                 WebkitTextStroke: displayColor === "white" ? "0.6px #000" : undefined,
