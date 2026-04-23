@@ -75,6 +75,11 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
+const MOBILE_IOS_STYLE_GLYPHS: Record<Color, Record<PieceType, string>> = {
+  white: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
+  black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
+};
+
 const WOOD_LIGHT = "#dcc4a1";
 const PANEL = "#f4f1ec";
 const PANEL_2 = "#e8e4de";
@@ -1171,6 +1176,7 @@ function SquareView({
   onDrop,
   onDragOver,
   pieceSize = "3.4rem",
+  useMobileIosStyleGlyphs = false,
 }: {
   sq: Square;
   piece: Piece | null;
@@ -1181,6 +1187,7 @@ function SquareView({
   onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
   pieceSize?: string;
+  useMobileIosStyleGlyphs?: boolean;
 }) {
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
@@ -1191,6 +1198,8 @@ function SquareView({
       : highlight === "to"
         ? "0 0 0 3px rgba(74,222,128,.75) inset"
         : "none";
+
+  const glyphSet = useMobileIosStyleGlyphs ? MOBILE_IOS_STYLE_GLYPHS : GLYPHS;
 
   return (
     <button
@@ -1206,33 +1215,27 @@ function SquareView({
       }}
     >
       {piece && (
-        <svg
-          viewBox="0 0 100 100"
-          aria-hidden="true"
+        <div
           style={{
-            position: "absolute",
-            inset: 0,
+            fontSize: pieceSize,
+            lineHeight: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             width: "100%",
             height: "100%",
-            overflow: "visible",
-            pointerEvents: "none",
+            transform: "translateY(4%)",
+            textShadow: piece.color === "white"
+              ? (useMobileIosStyleGlyphs ? "none" : "0 0 0.8px #000, 0 0 0.8px #000")
+              : "none",
+            WebkitTextStroke: piece.color === "white"
+              ? (useMobileIosStyleGlyphs ? "0.4px #000" : "0.6px #000")
+              : undefined,
+            color: piece.color === "white" ? "#ffffff" : "#000000",
           }}
         >
-          <text
-            x="50"
-            y="52"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="74"
-            fontFamily='"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif'
-            fill={piece.color === "white" ? "#ffffff" : "#000000"}
-            stroke={piece.color === "white" ? "#000000" : "transparent"}
-            strokeWidth={piece.color === "white" ? "2.2" : "0"}
-            paintOrder="stroke fill"
-          >
-            {GLYPHS[piece.color][piece.type]}
-          </text>
-        </svg>
+          {glyphSet[piece.color][piece.type]}
+        </div>
       )}
     </button>
   );
@@ -1275,25 +1278,13 @@ function CapturedRow({
               className="relative inline-flex items-start justify-start"
               style={{
                 fontSize: compact ? "1.32rem" : "2.2rem",
-                fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
                 lineHeight: 1,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                WebkitTextFillColor: displayColor === "white" ? "#ffffff" : "#000000",
-                WebkitTextStroke: displayColor === "white" ? "1px #000000" : "0px transparent",
+                textShadow: displayColor === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
+                WebkitTextStroke: displayColor === "white" ? "0.6px #000" : undefined,
                 color: displayColor === "white" ? "#ffffff" : "#000000",
               }}
             >
-              <span
-                style={{
-                  color: displayColor === "white" ? "#ffffff" : "#000000",
-                  WebkitTextFillColor: displayColor === "white" ? "#ffffff" : "#000000",
-                  WebkitTextStroke: displayColor === "white" ? "1.2px #000000" : "0px transparent",
-                }}
-              >
-                {GLYPHS[displayColor][p.type]}
-              </span>
+              {GLYPHS[displayColor][p.type]}
               {isFifthColumn && (
                 <span
                   style={{
@@ -1394,26 +1385,15 @@ function FifthColumnCard({
                 <div
                   style={{
                     fontSize: compact ? "3.2rem" : "5.2rem",
-                    fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
+                    fontFamily: "Segoe UI Symbol, Noto Sans Symbols, serif",
                     lineHeight: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    WebkitTextFillColor: displayPiece.color === "white" ? "#ffffff" : "#000000",
-                    WebkitTextStroke: displayPiece.color === "white" ? "1px #000000" : "0px transparent",
+                    textShadow: displayPiece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
+                    WebkitTextStroke: displayPiece.color === "white" ? "1px #000" : undefined,
                     color: displayPiece.color === "white" ? "#ffffff" : "#000000",
                     opacity: info.piece ? 1 : 0.5,
                   }}
                 >
-                  <span
-                    style={{
-                      color: displayPiece.color === "white" ? "#ffffff" : "#000000",
-                      WebkitTextFillColor: displayPiece.color === "white" ? "#ffffff" : "#000000",
-                      WebkitTextStroke: displayPiece.color === "white" ? "1.4px #000000" : "0px transparent",
-                    }}
-                  >
-                    {GLYPHS[displayPiece.color][displayPiece.type]}
-                  </span>
+                  {GLYPHS[displayPiece.color][displayPiece.type]}
                 </div>
               ) : (
                 <div className="text-xs opacity-70 px-2">Unknown</div>
@@ -1453,6 +1433,7 @@ export default function App() {
   }, []);
   const isAndroid = /Android/i.test(navigator.userAgent);
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
   const [state, setState] = useState<State>(initialState);
   const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -1799,6 +1780,7 @@ export default function App() {
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         pieceSize="2.1rem"
+                        useMobileIosStyleGlyphs={isMobile}
                       />
                     );
                   }),
@@ -2258,24 +2240,12 @@ export default function App() {
                     className="rounded-2xl p-4 text-6xl leading-none transition-all duration-150 hover:opacity-85 hover:-translate-y-[1px]"
                     style={{
                       background: "#ffffff",
-                      fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      WebkitTextFillColor: isWhite ? "#ffffff" : "#000000",
                       color: isWhite ? "#ffffff" : "#000000",
-                      WebkitTextStroke: isWhite ? "1px #000000" : "0px transparent",
+                      textShadow: isWhite ? "0 0 1px #000, 0 0 1px #000" : "none",
+                      WebkitTextStroke: isWhite ? "0.8px #000" : undefined,
                     }}
                   >
-                    <span
-                      style={{
-                        color: isWhite ? "#ffffff" : "#000000",
-                        WebkitTextFillColor: isWhite ? "#ffffff" : "#000000",
-                        WebkitTextStroke: isWhite ? "1.4px #000000" : "0px transparent",
-                      }}
-                    >
-                      {GLYPHS[state.pendingPromotion!.color][type]}
-                    </span>
+                    {GLYPHS[state.pendingPromotion!.color][type]}
                   </button>
                 );
               })}
