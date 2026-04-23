@@ -75,19 +75,14 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
-const ALT_GLYPHS: Record<Color, Record<PieceType, string>> = {
-  white: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
-  black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
+const MOBILE_NON_ANDROID_GLYPHS: Record<PieceType, string> = {
+  K: "\u265A\uFE0E",
+  Q: "\u265B\uFE0E",
+  R: "\u265C\uFE0E",
+  B: "\u265D\uFE0E",
+  N: "\u265E\uFE0E",
+  P: "\u265F\uFE0E",
 };
-
-const WOOD_LIGHT = "#dcc4a1";
-const PANEL = "#f4f1ec";
-const PANEL_2 = "#e8e4de";
-const ACCENT = "#b07a52";
-const PAGE_BG = "#f6f1ea";
-const TEXT = "#3a332c";
-const BORDER = "#d8cfc2";
-const LOGO_SRC = "/logo-paranoia.svg";
 
 const other = (c: Color): Color => (c === "white" ? "black" : "white");
 const keyOf = (f: number, r: number) => `${FILES[f]}${r}` as Square;
@@ -1176,7 +1171,7 @@ function SquareView({
   onDrop,
   onDragOver,
   pieceSize = "3.4rem",
-  useAltGlyphs = false,
+  yphs = false,
 }: {
   sq: Square;
   piece: Piece | null;
@@ -1187,9 +1182,7 @@ function SquareView({
   onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
   pieceSize?: string;
-  useAltGlyphs?: boolean;
-}) {
-  const { f, r } = coords(sq);
+  useMobileNonAndroidGlconst { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
   const border = selected
     ? "0 0 0 3px rgba(0,0,0,0.35) inset"
@@ -1199,7 +1192,7 @@ function SquareView({
         ? "0 0 0 3px rgba(74,222,128,.75) inset"
         : "none";
 
-  const glyphs = useAltGlyphs ? ALT_GLYPHS : GLYPHS;
+  const glyph = piece ? (useMobileNonAndroidGlPHS[piece.color][piece.type]) : "";
 
   return (
     <button
@@ -1225,27 +1218,8 @@ function SquareView({
             width: "100%",
             height: "100%",
             transform: "translateY(4%)",
-            textShadow: piece.color === "white"
-              ? (useAltGlyphs ? "0 0 0.35px #000" : "0 0 0.8px #000, 0 0 0.8px #000")
-              : "none",
-            WebkitTextStroke: piece.color === "white"
-              ? (useAltGlyphs ? "0.25px #000" : "0.6px #000")
-              : undefined,
-            color: piece.color === "white" ? "#ffffff" : "#000000",
-          }}
-        >
-          {glyphs[piece.color][piece.type]}
-        </div>
-      )}
-    </button>
-  );
-}
-
-function CapturedRow({
-  title,
-  pieces,
-  score,
-  fifthColumnPieceIds,
+            textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
+            WPieceIds,
   compact = false,
 }: {
   title: string;
@@ -1257,7 +1231,7 @@ function CapturedRow({
   const quietusColor: Color = title.includes("Black captured") ? "black" : "white";
 
   return (
-    <div className={compact ? "rounded-2xl p-2 border" : "rounded-2xl p-3 border"} style={{ background: PANEL_2, borderColor: BORDER }}>
+    <div className={co: "rounded-2xl p-3 border"} style={{ background: PANEL_2, borderColor: BORDER }}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-semibold">{title}</div>
         <div className="text-sm font-semibold" style={{ color: TEXT }}>
@@ -1436,18 +1410,7 @@ export default function App() {
   const isNonAndroidMobile = !isAndroid && /iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const [state, setState] = useState<State>(initialState);
   const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
-  const workerRef = useRef<Worker | null>(null);
-  const pendingRequestIdRef = useRef(0);
-
-  useEffect(() => {
-    runSelfTests();
-  }, []);
-
-  useEffect(() => {
-    const worker = createCpuWorker();
-    workerRef.current = worker;
-
-    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+  const workerRef = useRef<Worker |age = (event: MessageEvent<WorkerResponse>) => {
       const data = event.data;
       if (!data || data.type !== "pickMoveResult") return;
       if (data.requestId !== pendingRequestIdRef.current) return;
@@ -1780,7 +1743,7 @@ export default function App() {
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         pieceSize="2.1rem"
-                        useAltGlyphs={isNonAndroidMobile}
+                        useMobileNonAndroidGlyphs={isNonAndroidMobile}
                       />
                     );
                   }),
@@ -1800,7 +1763,7 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-3xl p-2 border space-y-1.5" style={{ background: PANEL, borderColor: BORDER }}>
+            <div cspace-y-1.5" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-base font-semibold">Mode</div>
               <label className="flex flex-col gap-0.5 text-[13px]">
                 <select className="rounded-xl px-3 py-1\.5 text-\[13px\] h-9" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
@@ -2047,7 +2010,7 @@ export default function App() {
                           onDrop={handleDrop}
                           onDragOver={handleDragOver}
                           pieceSize="3.4rem"
-                          useAltGlyphs={false}
+                          useMobileNonAndroidGlyphs={false}
                         />
                       );
                     }),
@@ -2067,8 +2030,7 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CapturedRow
-                title="Quietus · Black captured pieces"
+              <Cap     title="Quietus · Black captured pieces"
                 pieces={state.quietus.black}
                 score={blackScore}
                 fifthColumnPieceIds={[
