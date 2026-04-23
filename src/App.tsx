@@ -75,6 +75,11 @@ const GLYPHS: Record<Color, Record<PieceType, string>> = {
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
+const IOS_GLYPHS: Record<Color, Record<PieceType, string>> = {
+  white: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
+  black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
+};
+
 
 
 const WOOD_LIGHT = "#dcc4a1";
@@ -1173,7 +1178,7 @@ function SquareView({
   onDrop,
   onDragOver,
   pieceSize = "3.4rem",
-  
+  useIosGlyphs = false,
 }: {
   sq: Square;
   piece: Piece | null;
@@ -1184,7 +1189,7 @@ function SquareView({
   onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
   pieceSize?: string;
-  
+  useIosGlyphs?: boolean;
 }) {
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
@@ -1196,7 +1201,7 @@ function SquareView({
         ? "0 0 0 3px rgba(74,222,128,.75) inset"
         : "none";
 
-  const glyphSet = GLYPHS;
+  const glyphSet = useIosGlyphs ? IOS_GLYPHS : GLYPHS;
 
   return (
     <button
@@ -1221,9 +1226,13 @@ function SquareView({
             justifyContent: "center",
             width: "100%",
             height: "100%",
-            transform: "translateY(4%)",
-            textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
-            WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
+            transform: useIosGlyphs ? "translateY(2%)" : "translateY(4%)",
+            textShadow: piece.color === "white"
+              ? (useIosGlyphs ? "none" : "0 0 0.8px #000, 0 0 0.8px #000")
+              : "none",
+            WebkitTextStroke: piece.color === "white"
+              ? (useIosGlyphs ? "0.35px #000" : "0.6px #000")
+              : undefined,
             color: piece.color === "white" ? "#ffffff" : "#000000",
           }}
         >
@@ -1773,6 +1782,7 @@ export default function App() {
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         pieceSize="2.1rem"
+                        useIosGlyphs={isIOS}
                       />
                     );
                   }),
@@ -2039,6 +2049,7 @@ export default function App() {
                           onDrop={handleDrop}
                           onDragOver={handleDragOver}
                           pieceSize="3.4rem"
+                          useIosGlyphs={false}
                         />
                       );
                     }),
