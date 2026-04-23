@@ -1171,6 +1171,17 @@ function SquareView({
   onDrop,
   onDragOver,
   pieceSize = "3.4rem",
+  useMobileNonAndroidGlyphs = false,
+}: {
+  sq: Square;
+  piece: Piece | null;
+  selected: boolean;
+  highlight: "from" | "to" | "none";
+  onClick: () => void;
+  onDragStart: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
+  onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
+  onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
+  pieceSize?: string;
   useMobileNonAndroidGlyphs?: boolean;
 }) {
   const { f, r } = coords(sq);
