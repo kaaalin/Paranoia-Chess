@@ -71,7 +71,7 @@ const RANKS_DESC = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 const PROMOTION_TYPES: Exclude<PieceType, "K" | "P">[] = ["Q", "R", "B", "N"];
 
 const GLYPHS: Record<Color, Record<PieceType, string>> = {
-  white: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
+  white: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
   black: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
@@ -1209,6 +1209,7 @@ function SquareView({
         <div
           style={{
             fontSize: pieceSize,
+            fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
             lineHeight: 1,
             display: "flex",
             alignItems: "center",
@@ -1265,6 +1266,7 @@ function CapturedRow({
               className="relative inline-flex items-start justify-start"
               style={{
                 fontSize: compact ? "1.32rem" : "2.2rem",
+                fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
                 lineHeight: 1,
                 textShadow: displayColor === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
                 WebkitTextStroke: displayColor === "white" ? "0.6px #000" : undefined,
@@ -1372,7 +1374,7 @@ function FifthColumnCard({
                 <div
                   style={{
                     fontSize: compact ? "3.2rem" : "5.2rem",
-                    fontFamily: "Segoe UI Symbol, Noto Sans Symbols, serif",
+                    fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
                     lineHeight: 1,
                     textShadow: displayPiece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
                     WebkitTextStroke: displayPiece.color === "white" ? "1px #000" : undefined,
@@ -2225,6 +2227,7 @@ export default function App() {
                     className="rounded-2xl p-4 text-6xl leading-none transition-all duration-150 hover:opacity-85 hover:-translate-y-[1px]"
                     style={{
                       background: "#ffffff",
+                      fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
                       color: isWhite ? "#ffffff" : "#000000",
                       textShadow: isWhite ? "0 0 1px #000, 0 0 1px #000" : "none",
                       WebkitTextStroke: isWhite ? "0.8px #000" : undefined,
