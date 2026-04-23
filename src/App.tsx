@@ -1769,7 +1769,7 @@ export default function App() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-3xl p-2 border space-y-1.5" style={{ background: PANEL, borderColor: BORDER }}>
-              <div className="text-sm font-semibold">Mode</div>
+              <div className="text-base font-semibold">Mode</div>
               <label className="flex flex-col gap-0.5 text-[13px]">
                 <select className="rounded-xl px-3 py-1\.5 text-\[13px\] h-9" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
                   <option value="human">With Human</option>
