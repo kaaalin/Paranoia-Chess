@@ -1339,7 +1339,7 @@ function FifthColumnCard({
     <div className="flex justify-center">
       <button
         type="button"
-        onClick={onToggle}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
         onMouseLeave={() => {
           if (revealed) onHide();
         }}
@@ -1408,6 +1408,14 @@ function FifthColumnCard({
 }
 
 export default function App() {
+  useEffect(() => {
+    function handleGlobalClick() {
+      setState((s) => (s.peek !== "none" ? { ...s, peek: "none" } : s));
+    }
+
+    document.addEventListener("click", handleGlobalClick);
+    return () => document.removeEventListener("click", handleGlobalClick);
+  }, []);
   const isAndroid = /Android/i.test(navigator.userAgent);
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [state, setState] = useState<State>(initialState);
