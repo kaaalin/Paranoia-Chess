@@ -1208,17 +1208,18 @@ function SquareView({
       {piece && (
         <div
           style={{
+            position: "absolute",
+            inset: 0,
             fontSize: pieceSize,
             fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
             lineHeight: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: "100%",
-            height: "100%",
-            transform: "translateY(4%)",
-            textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
-            WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
+            transform: "translateY(0)",
+            textShadow: piece.color === "white" ? "none" : "none",
+            WebkitTextFillColor: piece.color === "white" ? "#ffffff" : "#000000",
+            WebkitTextStroke: piece.color === "white" ? "1px #000000" : "0px transparent",
             color: piece.color === "white" ? "#ffffff" : "#000000",
           }}
         >
@@ -1268,8 +1269,11 @@ function CapturedRow({
                 fontSize: compact ? "1.32rem" : "2.2rem",
                 fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
                 lineHeight: 1,
-                textShadow: displayColor === "white" ? "0 0 0.6px #000, 0 0 0.6px #000" : "none",
-                WebkitTextStroke: displayColor === "white" ? "0.6px #000" : undefined,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                WebkitTextFillColor: displayColor === "white" ? "#ffffff" : "#000000",
+                WebkitTextStroke: displayColor === "white" ? "1px #000000" : "0px transparent",
                 color: displayColor === "white" ? "#ffffff" : "#000000",
               }}
             >
@@ -1376,8 +1380,11 @@ function FifthColumnCard({
                     fontSize: compact ? "3.2rem" : "5.2rem",
                     fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
                     lineHeight: 1,
-                    textShadow: displayPiece.color === "white" ? "0 0 1px #000, 0 0 1px #000" : "none",
-                    WebkitTextStroke: displayPiece.color === "white" ? "1px #000" : undefined,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    WebkitTextFillColor: displayPiece.color === "white" ? "#ffffff" : "#000000",
+                    WebkitTextStroke: displayPiece.color === "white" ? "1px #000000" : "0px transparent",
                     color: displayPiece.color === "white" ? "#ffffff" : "#000000",
                     opacity: info.piece ? 1 : 0.5,
                   }}
@@ -2228,9 +2235,12 @@ export default function App() {
                     style={{
                       background: "#ffffff",
                       fontFamily: '"Times New Roman", "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif',
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      WebkitTextFillColor: isWhite ? "#ffffff" : "#000000",
                       color: isWhite ? "#ffffff" : "#000000",
-                      textShadow: isWhite ? "0 0 1px #000, 0 0 1px #000" : "none",
-                      WebkitTextStroke: isWhite ? "0.8px #000" : undefined,
+                      WebkitTextStroke: isWhite ? "1px #000000" : "0px transparent",
                     }}
                   >
                     {GLYPHS[state.pendingPromotion!.color][type]}
