@@ -1708,19 +1708,34 @@ export default function App() {
           </div>
 
           <div
-            className="px-1 text-sm leading-none min-h-[10px]"
+            className="px-1 text-sm leading-none min-h-[10px] flex items-center justify-between"
             style={{
               color: TEXT,
-              textAlign: "left",
               marginTop: "-3px",
               marginBottom: isAndroid ? "-3px" : "6px",
             }}
           >
-            {state.result
-              ? state.result
-              : (state.status && state.status !== "White to move.")
-                ? state.status
-                : "Paranoia Chess"}
+            <div style={{ textAlign: "left" }}>
+              {state.result
+                ? state.result
+                : (state.status && state.status !== "White to move.")
+                  ? state.status
+                  : "Paranoia Chess"}
+            </div>
+
+            {thinking && (
+              <div
+                style={{
+                  color: ACCENT,
+                  fontSize: "9px",
+                  letterSpacing: "0.08em",
+                  opacity: 0.9,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                thinking...
+              </div>
+            )}
           </div>
 
           <div className="rounded-[28px] p-2 border shadow-xl mx-auto w-full max-w-[min(100vw-24px,560px)]" style={{ background: PANEL, borderColor: BORDER }}>
