@@ -1185,19 +1185,6 @@ function SquareView({
   useMobileNonAndroidGlyphs?: boolean;
 }) {
   const { f, r } = coords(sq);
-}: {
-  sq: Square;
-  piece: Piece | null;
-  selected: boolean;
-  highlight: "from" | "to" | "none";
-  onClick: () => void;
-  onDragStart: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
-  onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
-  onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
-  pieceSize?: string;
-  useMobileNonAndroidGlyphs?: boolean;
-}) {
-  const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
   const border = selected
     ? "0 0 0 3px rgba(0,0,0,0.35) inset"
