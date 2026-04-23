@@ -1703,7 +1703,7 @@ export default function App() {
               color: TEXT,
               textAlign: "left",
               marginTop: "-3px",
-              marginBottom: isAndroid ? "-3px" : "3px",
+              marginBottom: isAndroid ? "-3px" : "6px",
             }}
           >
             {state.result
