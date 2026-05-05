@@ -1820,10 +1820,27 @@ export default function App() {
               </label>
               <label className="flex flex-col gap-0.5 text-[13px]">
                 <span>Level</span>
-                <select className="rounded-xl px-3 py-1\.5 text-\[13px\] h-9" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
+                <select
+                  className="rounded-xl px-3 py-1.5 text-[13px] h-9 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={state.mode === "human"}
+                  style={{
+                    background: state.mode === "human" ? "#d8c8b2" : PANEL_2,
+                    border: `1px solid ${BORDER}`,
+                    color: state.mode === "human" ? "#7a6f63" : TEXT,
+                    outlineColor: "#b8b2aa",
+                  }}
+                  value={state.mode === "human" ? "Human" : state.difficulty}
+                  onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}
+                >
+                  {state.mode === "human" ? (
+                    <option value="Human">Human</option>
+                  ) : (
+                    <>
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </>
+                  )}
                 </select>
               </label>
             </div>
@@ -1988,10 +2005,27 @@ export default function App() {
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Level</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.difficulty} onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
+                <select
+                  className="rounded-xl px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={state.mode === "human"}
+                  style={{
+                    background: state.mode === "human" ? "#d8c8b2" : PANEL_2,
+                    border: `1px solid ${BORDER}`,
+                    color: state.mode === "human" ? "#7a6f63" : TEXT,
+                    outlineColor: "#b8b2aa",
+                  }}
+                  value={state.mode === "human" ? "Human" : state.difficulty}
+                  onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}
+                >
+                  {state.mode === "human" ? (
+                    <option value="Human">Human</option>
+                  ) : (
+                    <>
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </>
+                  )}
                 </select>
               </label>
               {thinking && (
