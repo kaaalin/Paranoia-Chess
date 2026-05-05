@@ -1460,6 +1460,13 @@ export default function App() {
 
   const boardOrderRanks = state.flipped ? [...RANKS_ASC] : RANKS_DESC;
   const boardOrderFiles = state.flipped ? [...FILES].reverse() : FILES;
+  const bottomColor: Color = state.flipped ? "black" : "white";
+  function toggleFlip() {
+    setState((s) => ({ ...s, flipped: !s.flipped }));
+  }
+  function setBottomColor(color: Color) {
+    setState((s) => ({ ...s, flipped: color === "black" }));
+  }
   const canReveal = !state.winner && !state.pendingPromotion && !state.secrets[state.turn].revealed;
   const humanSide: Color = state.mode === "cpu" ? other(state.cpuColor) : (state.flipped ? "black" : "white");
   const peekSide: Color = humanSide;
@@ -1704,7 +1711,7 @@ export default function App() {
                 <button onClick={reset} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: "#ffffff", color: TEXT }}>
                   New
                 </button>
-                <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: PANEL_2, color: TEXT }}>
+                <button onClick={toggleFlip} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: PANEL_2, color: TEXT }}>
                   Flip
                 </button>
                 <button onClick={() => setState((s) => ({ ...s, showRules: true }))} className="px-3 py-2 rounded-2xl font-semibold text-sm" style={{ background: ACCENT, color: "#ffffff" }}>
@@ -1801,8 +1808,12 @@ export default function App() {
                 </select>
               </label>
               <label className="flex flex-col gap-0.5 text-[13px]">
-                <span>Computer plays</span>
-                <select className="rounded-xl px-3 py-1\.5 text-\[13px\] h-9" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
+                <span>{state.mode === "human" ? "Bottom color" : "Computer plays"}</span>
+                <select className="rounded-xl px-3 py-1.5 text-[13px] h-9" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode === "human" ? bottomColor : state.cpuColor} onChange={(e) => {
+                  const color = e.target.value as Color;
+                  if (state.mode === "human") setBottomColor(color);
+                  else setState((s) => ({ ...s, cpuColor: color }));
+                }}>
                   <option value="white">White</option>
                   <option value="black">Black</option>
                 </select>
@@ -1938,7 +1949,7 @@ export default function App() {
                 <button onClick={reset} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: "#ffffff", color: TEXT }}>
                   New
                 </button>
-                <button onClick={() => setState((s) => ({ ...s, flipped: !s.flipped }))} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2, color: TEXT }}>
+                <button onClick={toggleFlip} className="px-4 py-2 rounded-2xl font-semibold" style={{ background: PANEL_2, color: TEXT }}>
                   Flip
                 </button>
               </div>
@@ -1965,8 +1976,12 @@ export default function App() {
                 </select>
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
-                <span>Computer plays</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.cpuColor} onChange={(e) => setState((s) => ({ ...s, cpuColor: e.target.value as Color }))}>
+                <span>{state.mode === "human" ? "Bottom color" : "Computer plays"}</span>
+                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode === "human" ? bottomColor : state.cpuColor} onChange={(e) => {
+                  const color = e.target.value as Color;
+                  if (state.mode === "human") setBottomColor(color);
+                  else setState((s) => ({ ...s, cpuColor: color }));
+                }}>
                   <option value="white">White</option>
                   <option value="black">Black</option>
                 </select>
