@@ -1415,6 +1415,117 @@ function FifthColumnCard({
   );
 }
 
+type DropdownOption<T extends string> = {
+  value: T;
+  label: string;
+};
+
+function CustomDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+  disabled = false,
+  compact = false,
+}: {
+  value: T;
+  options: DropdownOption<T>[];
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const idRef = useRef(Math.random().toString(36));
+  const selected = options.find((option) => option.value === value) || options[0];
+  const longestLabel = options.reduce((longest, option) => option.label.length > longest.length ? option.label : longest, "");
+  const dropdownWidth = `calc(${longestLabel.length}ch + 3.9rem)`;
+  const SELECT_GRAY = "#c8bcae";
+  const SELECT_GRAY_HOVER = "#d7cdc0";
+
+  useEffect(() => {
+    function handleGlobal(e: any) {
+      if (e.detail !== idRef.current) {
+        setOpen(false);
+      }
+    }
+    window.addEventListener("dropdown-open", handleGlobal);
+    return () => window.removeEventListener("dropdown-open", handleGlobal);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function close() {
+      setOpen(false);
+    }
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block shrink-0" style={{ width: dropdownWidth }}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!disabled) {
+            const next = !open;
+            setOpen(next);
+            if (next) {
+              window.dispatchEvent(new CustomEvent("dropdown-open", { detail: idRef.current }));
+            }
+          }
+        }}
+        className={`w-full rounded-xl px-3 ${compact ? "py-1.5 text-[13px] h-9" : "py-2 text-sm"} flex items-center justify-between gap-3 disabled:opacity-50 disabled:cursor-not-allowed`}
+        style={{
+          background: disabled ? "#d8c8b2" : PANEL_2,
+          border: `0.7px solid ${BORDER}`,
+          color: disabled ? "#7a6f63" : TEXT,
+          outline: "none",
+          boxShadow: "none",
+        }}
+      >
+        <span className="whitespace-nowrap">{selected?.label}</span>
+        <span style={{ fontSize: "10px", opacity: 0.65, transform: open ? "rotate(180deg)" : "none" }}>▾</span>
+      </button>
+
+      {open && !disabled && (
+        <div
+          className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl shadow-lg"
+          style={{ background: PANEL_2, border: `0.7px solid ${BORDER}`, color: TEXT }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {options.map((option) => {
+            const active = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`w-full px-3 ${compact ? "py-1.5 text-[13px]" : "py-2 text-sm"} text-left transition-colors whitespace-nowrap`}
+                style={{
+                  background: active ? SELECT_GRAY : PANEL_2,
+                  color: TEXT,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = active ? SELECT_GRAY : SELECT_GRAY_HOVER;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = active ? SELECT_GRAY : PANEL_2;
+                }}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     function handleGlobalClick() {
@@ -1802,46 +1913,46 @@ export default function App() {
             <div className="rounded-3xl p-2 border space-y-1.5" style={{ background: PANEL, borderColor: BORDER }}>
               <div className="text-base font-semibold">Mode</div>
               <label className="flex flex-col gap-0.5 text-[13px]">
-                <select className="rounded-xl px-3 py-1\.5 text-\[13px\] h-9" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
-                  <option value="human">With Human</option>
-                  <option value="cpu">With Computer</option>
-                </select>
+                <CustomDropdown<Mode>
+                  compact
+                  value={state.mode}
+                  options={[
+                    { value: "human", label: "With Human" },
+                    { value: "cpu", label: "With Computer" },
+                  ]}
+                  onChange={(mode) => setState((s) => ({ ...s, mode }))}
+                />
               </label>
               <label className="flex flex-col gap-0.5 text-[13px]">
                 <span>{state.mode === "human" ? "Bottom color" : "Computer plays"}</span>
-                <select className="rounded-xl px-3 py-1.5 text-[13px] h-9" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode === "human" ? bottomColor : state.cpuColor} onChange={(e) => {
-                  const color = e.target.value as Color;
-                  if (state.mode === "human") setBottomColor(color);
-                  else setState((s) => ({ ...s, cpuColor: color }));
-                }}>
-                  <option value="white">White</option>
-                  <option value="black">Black</option>
-                </select>
+                <CustomDropdown<Color>
+                  compact
+                  value={state.mode === "human" ? bottomColor : state.cpuColor}
+                  options={[
+                    { value: "white", label: "White" },
+                    { value: "black", label: "Black" },
+                  ]}
+                  onChange={(color) => {
+                    if (state.mode === "human") setBottomColor(color);
+                    else setState((s) => ({ ...s, cpuColor: color }));
+                  }}
+                />
               </label>
               <label className="flex flex-col gap-0.5 text-[13px]">
                 <span>Level</span>
-                <select
-                  className="rounded-xl px-3 py-1.5 text-[13px] h-9 disabled:opacity-50 disabled:cursor-not-allowed"
+                <CustomDropdown<string>
+                  compact
                   disabled={state.mode === "human"}
-                  style={{
-                    background: state.mode === "human" ? "#d8c8b2" : PANEL_2,
-                    border: `1px solid ${BORDER}`,
-                    color: state.mode === "human" ? "#7a6f63" : TEXT,
-                    outlineColor: "#b8b2aa",
-                  }}
                   value={state.mode === "human" ? "Human" : state.difficulty}
-                  onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}
-                >
-                  {state.mode === "human" ? (
-                    <option value="Human">Human</option>
-                  ) : (
-                    <>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </>
-                  )}
-                </select>
+                  options={state.mode === "human"
+                    ? [{ value: "Human", label: "Human" }]
+                    : [
+                        { value: "Easy", label: "Easy" },
+                        { value: "Medium", label: "Medium" },
+                        { value: "Hard", label: "Hard" },
+                      ]}
+                  onChange={(difficulty) => setState((s) => ({ ...s, difficulty: difficulty as Difficulty }))}
+                />
               </label>
             </div>
 
@@ -1987,46 +2098,43 @@ export default function App() {
               <div className="text-lg font-semibold">Computer opponent</div>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Mode</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode} onChange={(e) => setState((s) => ({ ...s, mode: e.target.value as Mode }))}>
-                  <option value="human">Human vs Human</option>
-                  <option value="cpu">Human vs Computer</option>
-                </select>
+                <CustomDropdown<Mode>
+                  value={state.mode}
+                  options={[
+                    { value: "human", label: "Human vs Human" },
+                    { value: "cpu", label: "Human vs Computer" },
+                  ]}
+                  onChange={(mode) => setState((s) => ({ ...s, mode }))}
+                />
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>{state.mode === "human" ? "Bottom color" : "Computer plays"}</span>
-                <select className="rounded-xl px-3 py-2" style={{ background: PANEL_2, border: `1px solid ${BORDER}`, color: TEXT, outlineColor: '#b8b2aa' }} value={state.mode === "human" ? bottomColor : state.cpuColor} onChange={(e) => {
-                  const color = e.target.value as Color;
-                  if (state.mode === "human") setBottomColor(color);
-                  else setState((s) => ({ ...s, cpuColor: color }));
-                }}>
-                  <option value="white">White</option>
-                  <option value="black">Black</option>
-                </select>
+                <CustomDropdown<Color>
+                  value={state.mode === "human" ? bottomColor : state.cpuColor}
+                  options={[
+                    { value: "white", label: "White" },
+                    { value: "black", label: "Black" },
+                  ]}
+                  onChange={(color) => {
+                    if (state.mode === "human") setBottomColor(color);
+                    else setState((s) => ({ ...s, cpuColor: color }));
+                  }}
+                />
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Level</span>
-                <select
-                  className="rounded-xl px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                <CustomDropdown<string>
                   disabled={state.mode === "human"}
-                  style={{
-                    background: state.mode === "human" ? "#d8c8b2" : PANEL_2,
-                    border: `1px solid ${BORDER}`,
-                    color: state.mode === "human" ? "#7a6f63" : TEXT,
-                    outlineColor: "#b8b2aa",
-                  }}
                   value={state.mode === "human" ? "Human" : state.difficulty}
-                  onChange={(e) => setState((s) => ({ ...s, difficulty: e.target.value as Difficulty }))}
-                >
-                  {state.mode === "human" ? (
-                    <option value="Human">Human</option>
-                  ) : (
-                    <>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </>
-                  )}
-                </select>
+                  options={state.mode === "human"
+                    ? [{ value: "Human", label: "Human" }]
+                    : [
+                        { value: "Easy", label: "Easy" },
+                        { value: "Medium", label: "Medium" },
+                        { value: "Hard", label: "Hard" },
+                      ]}
+                  onChange={(difficulty) => setState((s) => ({ ...s, difficulty: difficulty as Difficulty }))}
+                />
               </label>
               {thinking && (
                 <div className="text-xs" style={{ color: ACCENT, letterSpacing: "0.22em" }}>
@@ -2247,7 +2355,7 @@ export default function App() {
                   style={{
                     background: "transparent",
                     color: TEXT,
-                    border: `1px solid ${BORDER}`,
+                    border: `0.7px solid ${BORDER}`,
                     fontWeight: 400,
                   }}
                 >
