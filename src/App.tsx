@@ -2088,7 +2088,14 @@ export default function App() {
                 </button>
               </div>
               <div className="mt-4 text-sm opacity-80">
-                Turn: <span className="font-semibold capitalize">{state.turn}</span>
+                Turn: <span
+                  className="font-bold capitalize"
+                  style={{
+                    color: state.turn === "white" ? "#ffffff" : TEXT,
+                    textShadow: state.turn === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
+                    WebkitTextStroke: state.turn === "white" ? "0.35px #000" : undefined,
+                  }}
+                >{state.turn}</span>
               </div>
               <div className="mt-2 min-h-16 rounded-2xl p-3 text-sm border" style={{ background: "#ede7df", borderColor: BORDER, color: TEXT }}>
                 {state.result || state.status}
