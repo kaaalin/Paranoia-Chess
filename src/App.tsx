@@ -1966,7 +1966,7 @@ export default function App() {
               <div className="text-base font-semibold">Fifth column</div>
               {state.mode === "human" ? (
                 <div className="flex justify-center gap-2">
-                  {(["white", "black"] as Color[]).map((side) => {
+                  {([state.turn] as Color[]).map((side) => {
                     const sideSecret = state.secrets[side];
                     const currentSquare = (Object.keys(state.board) as Square[]).find((sq) => state.board[sq]?.id === sideSecret.pieceId) || null;
                     const sidePiece = currentSquare ? state.board[currentSquare] : null;
