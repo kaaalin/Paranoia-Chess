@@ -182,7 +182,7 @@ function initialState(): State {
     mode: "cpu",
     cpuColor: "black",
     difficulty: "Medium",
-    status: "White to move.",
+    status: "White to move",
     winner: null,
     result: null,
     showInfo: false,
@@ -383,14 +383,14 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
     const sq = (Object.keys(next.board) as Square[]).find((k) => next.board[k]?.id === secret.pieceId) || null;
 
     if (!sq) {
-      next.status = `${state.turn} tried to reveal the fifth column, but it had already been removed.`;
+      next.status = `${state.turn} tried to reveal the fifth column, but it had already been removed`; 
       next.turn = other(state.turn);
       return next;
     }
 
     next.board[sq] = { ...next.board[sq]!, color: state.turn, moved: true };
     secret.revealed = true;
-    next.status = `${state.turn} revealed the fifth column on ${sq}.`;
+    next.status = `${state.turn} revealed the fifth column on ${sq}`;
     next.turn = other(state.turn);
     return next;
   }
@@ -416,8 +416,8 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
     const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
     // Do not reveal fifth column information in status
       next.status = move.kind === "selfCapture"
-        ? `${state.turn} purged a piece on ${move.to}.`
-        : `${state.turn} captured on ${move.to}.`;
+        ? `${state.turn} purged a piece on ${move.to}`
+        : `${state.turn} captured on ${move.to}`;
   }
 
   const movedPiece: Piece = { ...piece, moved: true };
@@ -430,7 +430,7 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
     if (rook) {
       next.board[rookFrom] = null;
       next.board[rookTo] = { ...rook, moved: true };
-      next.status = `${state.turn} castled ${side}side.`;
+      next.status = `${state.turn} castled ${side}side`;
     }
   }
 
@@ -439,24 +439,24 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
   }
 
   if (piece.type === "P" && state.enPassantTarget === move.to && fromCoords.f !== toCoords.f && !state.board[move.to]) {
-    next.status = `${state.turn} captured en passant on ${move.to}.`;
+    next.status = `${state.turn} captured en passant on ${move.to}`;
   }
 
   if (maybePromotion(movedPiece, move.to)) {
     if (move.promotion) {
       next.board[move.to] = { ...movedPiece, type: move.promotion, promotedFromPawn: true };
-      next.status = `${state.turn} promoted on ${move.to}.`;
+      next.status = `${state.turn} promoted on ${move.to}`;
       next.turn = other(state.turn);
       return next;
     }
 
     next.pendingPromotion = { square: move.to, color: movedPiece.color, moveBase: { ...move } };
-    next.status = `${state.turn} must choose a promotion piece.`;
+    next.status = `${state.turn} must choose a promotion piece`; 
     return next;
   }
 
   next.turn = other(state.turn);
-  if (!next.status) next.status = `${state.turn} moved ${piece.type.toLowerCase()} from ${move.from} to ${move.to}.`;
+  if (!next.status) next.status = `${state.turn} moved ${piece.type.toLowerCase()} from ${move.from} to ${move.to}`;
   return next;
 }
 
@@ -506,18 +506,18 @@ function computeTerminalState(state: State): Pick<State, "winner" | "result" | "
   const currentKing = findKing(state.board, current);
   const enemyKing = findKing(state.board, other(current));
 
-  if (!currentKing) return { winner: other(current), result: `${other(current)} wins.`, status: `${state.status} ${other(current)} wins.`.trim() };
-  if (!enemyKing) return { winner: current, result: `${current} wins.`, status: `${state.status} ${current} wins.`.trim() };
+  if (!currentKing) return { winner: other(current), result: `${other(current)} wins`, status: `${state.status} ${other(current)} wins`.trim() };
+  if (!enemyKing) return { winner: current, result: `${current} wins`, status: `${state.status} ${current} wins`.trim() };
 
   const nextLegal = legalMoves({ ...state, selected: null }, current);
   const inCheck = squareAttacked(state, currentKing, other(current));
 
   if (nextLegal.length === 0) {
-    if (inCheck) return { winner: other(current), result: `${other(current)} wins by checkmate.`, status: `${state.status} Checkmate.`.trim() };
-    return { winner: null, result: "Draw by stalemate.", status: `${state.status} Stalemate.`.trim() };
+    if (inCheck) return { winner: other(current), result: `${other(current)} wins by checkmate`, status: `${state.status} Checkmate`.trim() };
+    return { winner: null, result: "Draw by stalemate", status: `${state.status} Stalemate`.trim() };
   }
 
-  return { winner: null, result: null, status: inCheck ? `${state.status} ${current} is in check.`.trim() : state.status };
+  return { winner: null, result: null, status: inCheck ? `${state.status} ${current} is in check`.trim() : state.status };
 }
 
 function finalizeState(state: State): State {
@@ -809,13 +809,13 @@ function createCpuWorker() {
         if (secret.revealed) return next;
         const sq = Object.keys(next.board).find((k) => next.board[k]?.id === secret.pieceId) || null;
         if (!sq) {
-          next.status = state.turn + " tried to reveal the fifth column, but it had already been removed.";
+          next.status = state.turn + " tried to reveal the fifth column, but it had already been removed";
           next.turn = other(state.turn);
           return next;
         }
         next.board[sq] = { ...next.board[sq], color: state.turn, moved: true };
         secret.revealed = true;
-        next.status = state.turn + " revealed the fifth column on " + sq + ".";
+        next.status = state.turn + " revealed the fifth column on " + sq;
         next.turn = other(state.turn);
         return next;
       }
@@ -837,9 +837,9 @@ function createCpuWorker() {
         const wasHiddenEnemyAsset = !next.secrets[enemyBeneficiary].revealed && next.secrets[enemyBeneficiary].pieceId === target.id;
         next.status = move.kind === "selfCapture"
           ? wasHiddenEnemyAsset
-            ? state.turn + " purged their own piece on " + move.to + ". It was the opponent's fifth column."
-            : state.turn + " purged their own piece on " + move.to + "."
-          : state.turn + " captured on " + move.to + ".";
+            ? state.turn + " purged their own piece on " + move.to + " - it was the opponent's fifth column"
+            : state.turn + " purged their own piece on " + move.to
+          : state.turn + " captured on " + move.to;
       }
       const movedPiece = { ...piece, moved: true };
       next.board[move.to] = movedPiece;
@@ -850,24 +850,24 @@ function createCpuWorker() {
         if (rook) {
           next.board[rookFrom] = null;
           next.board[rookTo] = { ...rook, moved: true };
-          next.status = state.turn + " castled " + side + "side.";
+          next.status = state.turn + " castled " + side + "side";
         }
       }
       if (piece.type === "P" && Math.abs(toCoords.r - fromCoords.r) === 2) next.enPassantTarget = keyOf(fromCoords.f, fromCoords.r + (piece.color === "white" ? 1 : -1));
-      if (piece.type === "P" && state.enPassantTarget === move.to && fromCoords.f !== toCoords.f && !state.board[move.to]) next.status = state.turn + " captured en passant on " + move.to + ".";
+      if (piece.type === "P" && state.enPassantTarget === move.to && fromCoords.f !== toCoords.f && !state.board[move.to]) next.status = state.turn + " captured en passant on " + move.to;
       if (maybePromotion(movedPiece, move.to)) {
         if (move.promotion) {
           next.board[move.to] = { ...movedPiece, type: move.promotion, promotedFromPawn: true };
-          next.status = state.turn + " promoted on " + move.to + ".";
+          next.status = state.turn + " promoted on " + move.to;
           next.turn = other(state.turn);
           return next;
         }
         next.pendingPromotion = { square: move.to, color: movedPiece.color, moveBase: { ...move } };
-        next.status = state.turn + " must choose a promotion piece.";
+        next.status = state.turn + " must choose a promotion piece";
         return next;
       }
       next.turn = other(state.turn);
-      if (!next.status) next.status = state.turn + " moved " + piece.type.toLowerCase() + " from " + move.from + " to " + move.to + ".";
+      if (!next.status) next.status = state.turn + " moved " + piece.type.toLowerCase() + " from " + move.from + " to " + move.to;
       return next;
     };
     const perspectiveStateForCpu = (state) => {
@@ -901,15 +901,15 @@ function createCpuWorker() {
       const current = state.turn;
       const currentKing = findKing(state.board, current);
       const enemyKing = findKing(state.board, other(current));
-      if (!currentKing) return { winner: other(current), result: other(current) + " wins.", status: (state.status + " " + other(current) + " wins.").trim() };
-      if (!enemyKing) return { winner: current, result: current + " wins.", status: (state.status + " " + current + " wins.").trim() };
+      if (!currentKing) return { winner: other(current), result: other(current) + " wins", status: (state.status + " " + other(current) + " wins").trim() };
+      if (!enemyKing) return { winner: current, result: current + " wins", status: (state.status + " " + current + " wins").trim() };
       const nextLegal = legalMoves({ ...state, selected: null }, current);
       const inCheck = squareAttacked(state, currentKing, other(current));
       if (nextLegal.length === 0) {
-        if (inCheck) return { winner: other(current), result: other(current) + " wins by checkmate.", status: (state.status + " Checkmate.").trim() };
-        return { winner: null, result: "Draw by stalemate.", status: (state.status + " Stalemate.").trim() };
+        if (inCheck) return { winner: other(current), result: other(current) + " wins by checkmate", status: (state.status + " Checkmate").trim() };
+        return { winner: null, result: "Draw by stalemate", status: (state.status + " Stalemate").trim() };
       }
-      return { winner: null, result: null, status: inCheck ? (state.status + " " + current + " is in check.").trim() : state.status };
+      return { winner: null, result: null, status: inCheck ? (state.status + " " + current + " is in check").trim() : state.status };
     };
     const finalizeState = (state) => {
       const terminal = computeTerminalState(state);
@@ -1630,7 +1630,7 @@ export default function App() {
         setState((s) => ({
           ...s,
           selected: sq,
-          status: piece ? `Selected: ${pieceName(piece.type)} on ${sq}.` : s.status,
+          status: piece ? `Selected: ${pieceName(piece.type)} on ${sq}` : s.status,
         }));
       }
       return;
@@ -1667,7 +1667,7 @@ export default function App() {
         setState((s) => ({
           ...s,
           selected: sq,
-          status: "Purging already not allowed: opponent's 'fifth column' has already been revealed.",
+          status: "Purging already not allowed: opponent's 'fifth column' has already been revealed",
         }));
         return;
       }
@@ -1675,7 +1675,7 @@ export default function App() {
       setState((s) => ({
         ...s,
         selected: sq,
-        status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
+        status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}` : s.status,
       }));
       return;
     }
@@ -1695,7 +1695,7 @@ export default function App() {
     setState((s) => ({
           ...s,
           selected: sq,
-          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
+          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}` : s.status,
         }));
   }
 
@@ -1720,7 +1720,7 @@ export default function App() {
           setState((s) => ({
             ...s,
             selected: sq,
-            status: "Purging already not allowed, plus that only pawns, bishops, knights, or promoted pawns can be purged.",
+            status: "Purging already not allowed, plus that only pawns, bishops, knights, or promoted pawns can be purged",
           }));
           return;
         }
@@ -1729,7 +1729,7 @@ export default function App() {
           setState((s) => ({
             ...s,
             selected: sq,
-            status: "Purging not allowed: only pawns, bishops, knights, or promoted pawns can be purged.",
+            status: "Purging not allowed: only pawns, bishops, knights, or promoted pawns can be purged",
           }));
           return;
         }
@@ -1738,7 +1738,7 @@ export default function App() {
           setState((s) => ({
             ...s,
             selected: sq,
-            status: "Purging already not allowed: opponent's 'fifth column' has already been revealed.",
+            status: "Purging already not allowed: opponent's 'fifth column' has already been revealed",
           }));
           return;
         }
@@ -1746,7 +1746,7 @@ export default function App() {
         setState((s) => ({
           ...s,
           selected: sq,
-          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}.` : s.status,
+          status: s.board[sq] ? `Selected: ${pieceName(s.board[sq]!.type)} on ${sq}` : s.status,
         }));
       }
       return;
@@ -1796,7 +1796,7 @@ export default function App() {
       };
       next.pendingPromotion = null;
       next.turn = other(current.turn);
-      next.status = `${current.turn} promoted on ${square}.`;
+      next.status = `${current.turn} promoted on ${square}`;
       return finalizeState(next);
     });
   }
@@ -1846,7 +1846,7 @@ export default function App() {
             <div style={{ textAlign: "left" }}>
               {state.result
                 ? state.result
-                : (state.status && state.status !== "White to move.")
+                : (state.status && state.status !== "White to move")
                   ? state.status
                   : "Paranoia Chess"}
             </div>
