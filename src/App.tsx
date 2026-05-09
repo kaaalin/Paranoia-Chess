@@ -1426,18 +1426,21 @@ function CustomDropdown<T extends string>({
   onChange,
   disabled = false,
   compact = false,
+  widthLabels,
 }: {
   value: T;
   options: DropdownOption<T>[];
   onChange: (value: T) => void;
   disabled?: boolean;
   compact?: boolean;
+  widthLabels?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const idRef = useRef(Math.random().toString(36));
   const selected = options.find((option) => option.value === value) || options[0];
-  const longestLabel = options.reduce((longest, option) => option.label.length > longest.length ? option.label : longest, "");
-  const dropdownWidth = `calc(${longestLabel.length}ch + 3.9rem)`;
+  const widthSourceLabels = widthLabels?.length ? widthLabels : options.map((option) => option.label);
+  const longestLabel = widthSourceLabels.reduce((longest, label) => label.length > longest.length ? label : longest, "");
+  const dropdownWidth = `calc(${longestLabel.length}ch + 2.8rem)`;
   const SELECT_GRAY = "#c8bcae";
   const SELECT_GRAY_HOVER = "#d7cdc0";
 
@@ -1475,7 +1478,7 @@ function CustomDropdown<T extends string>({
             }
           }
         }}
-        className={`w-full rounded-xl px-3 ${compact ? "py-1.5 text-[13px] h-9" : "py-2 text-sm"} flex items-center justify-between gap-3 disabled:opacity-50 disabled:cursor-not-allowed`}
+        className={`w-full rounded-2xl px-3 ${compact ? "py-1.5 text-[13px] h-9" : "py-2 text-sm"} flex items-center justify-between gap-3 disabled:opacity-50 disabled:cursor-not-allowed`}
         style={{
           background: disabled ? "#d8c8b2" : PANEL_2,
           border: `0.7px solid ${BORDER}`,
@@ -1490,7 +1493,7 @@ function CustomDropdown<T extends string>({
 
       {open && !disabled && (
         <div
-          className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl shadow-lg"
+          className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-2xl shadow-lg"
           style={{ background: PANEL_2, border: `0.7px solid ${BORDER}`, color: TEXT }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1916,6 +1919,7 @@ export default function App() {
                 <CustomDropdown<Mode>
                   compact
                   value={state.mode}
+                  widthLabels={["With Human", "With Computer"]}
                   options={[
                     { value: "human", label: "With Human" },
                     { value: "cpu", label: "With Computer" },
@@ -1928,6 +1932,7 @@ export default function App() {
                 <CustomDropdown<Color>
                   compact
                   value={state.mode === "human" ? bottomColor : state.cpuColor}
+                  widthLabels={["White", "Black"]}
                   options={[
                     { value: "white", label: "White" },
                     { value: "black", label: "Black" },
@@ -1944,6 +1949,7 @@ export default function App() {
                   compact
                   disabled={state.mode === "human"}
                   value={state.mode === "human" ? "Human" : state.difficulty}
+                  widthLabels={["Human", "Easy", "Medium", "Hard"]}
                   options={state.mode === "human"
                     ? [{ value: "Human", label: "Human" }]
                     : [
@@ -2100,6 +2106,7 @@ export default function App() {
                 <span>Mode</span>
                 <CustomDropdown<Mode>
                   value={state.mode}
+                  widthLabels={["Human vs Human", "Human vs Computer"]}
                   options={[
                     { value: "human", label: "Human vs Human" },
                     { value: "cpu", label: "Human vs Computer" },
@@ -2111,6 +2118,7 @@ export default function App() {
                 <span>{state.mode === "human" ? "Bottom color" : "Computer plays"}</span>
                 <CustomDropdown<Color>
                   value={state.mode === "human" ? bottomColor : state.cpuColor}
+                  widthLabels={["White", "Black"]}
                   options={[
                     { value: "white", label: "White" },
                     { value: "black", label: "Black" },
@@ -2126,6 +2134,7 @@ export default function App() {
                 <CustomDropdown<string>
                   disabled={state.mode === "human"}
                   value={state.mode === "human" ? "Human" : state.difficulty}
+                  widthLabels={["Human", "Easy", "Medium", "Hard"]}
                   options={state.mode === "human"
                     ? [{ value: "Human", label: "Human" }]
                     : [
