@@ -1173,7 +1173,7 @@ function SquareView({
   onDrop,
   onDragOver,
   pieceSize = "3.4rem",
-  
+  rotatePiece = false,
 }: {
   sq: Square;
   piece: Piece | null;
@@ -1184,7 +1184,7 @@ function SquareView({
   onDrop: (e: React.DragEvent<HTMLButtonElement>, sq: Square) => void;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
   pieceSize?: string;
-  
+  rotatePiece?: boolean;
 }) {
   const { f, r } = coords(sq);
   const isDark = (f + r) % 2 === 0;
@@ -1221,7 +1221,8 @@ function SquareView({
             justifyContent: "center",
             width: "100%",
             height: "100%",
-            transform: "translateY(4%)",
+            transform: rotatePiece ? "rotate(180deg) translateY(-4%)" : "translateY(4%)",
+            transformOrigin: "center",
             textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
             WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
             color: piece.color === "white" ? "#ffffff" : "#000000",
@@ -1894,6 +1895,7 @@ export default function App() {
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         pieceSize="2.1rem"
+                        rotatePiece={state.mode === "human" && !!state.board[sq] && state.board[sq]?.color === other(bottomColor)}
                       />
                     );
                   }),
