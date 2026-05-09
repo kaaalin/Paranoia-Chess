@@ -1480,8 +1480,8 @@ function CustomDropdown<T extends string>({
         }}
         className={`w-full rounded-2xl px-3 ${compact ? "py-1.5 text-[13px] h-9" : "py-2 text-sm"} flex items-center justify-between gap-3 disabled:opacity-50 disabled:cursor-not-allowed`}
         style={{
-          background: disabled ? "#d8c8b2" : PANEL_2,
-          border: `0.7px solid ${BORDER}`,
+          background: disabled ? "#ede7df" : "#ede7df",
+          border: `1px solid ${BORDER}`,
           color: disabled ? "#7a6f63" : TEXT,
           outline: "none",
           boxShadow: "none",
@@ -1494,7 +1494,7 @@ function CustomDropdown<T extends string>({
       {open && !disabled && (
         <div
           className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-2xl shadow-lg"
-          style={{ background: PANEL_2, border: `0.7px solid ${BORDER}`, color: TEXT }}
+          style={{ background: "#ede7df", border: `1px solid ${BORDER}`, color: TEXT }}
           onClick={(e) => e.stopPropagation()}
         >
           {options.map((option) => {
