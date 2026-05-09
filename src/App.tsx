@@ -1221,7 +1221,7 @@ function SquareView({
             justifyContent: "center",
             width: "100%",
             height: "100%",
-            transform: rotatePiece ? "rotate(180deg)" : "translateY(4%)",
+            transform: rotatePiece ? "translateY(-4%) rotate(180deg)" : "translateY(4%)",
             transformOrigin: "center",
             textShadow: piece.color === "white" ? "0 0 0.8px #000, 0 0 0.8px #000" : "none",
             WebkitTextStroke: piece.color === "white" ? "0.6px #000" : undefined,
