@@ -1546,6 +1546,7 @@ export default function App() {
   const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
   const [state, setState] = useState<State>(initialState);
   const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
+  const [peekConfirm, setPeekConfirm] = useState<Color | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const pendingRequestIdRef = useRef(0);
 
@@ -1620,6 +1621,7 @@ export default function App() {
   function reset() {
     pendingRequestIdRef.current += 1;
     setPurgeChoice(null);
+    setPeekConfirm(null);
     setState(initialState());
   }
 
@@ -1994,7 +1996,10 @@ export default function App() {
                         <FifthColumnCard
                           revealed={state.peek === side}
                           info={{ secret: sideSecret, piece: sidePiece, originalPiece }}
-                          onToggle={() => setState((s) => ({ ...s, peek: s.peek === side ? "none" : side }))}
+                          onToggle={() => {
+                            if (state.peek === side) setState((s) => ({ ...s, peek: "none" }));
+                            else setPeekConfirm(side);
+                          }}
                           onHide={() => setState((s) => ({ ...s, peek: "none" }))}
                           canReveal={!state.winner && !state.pendingPromotion && !sideSecret.revealed && state.turn === side}
                           isSecretRevealed={sideSecret.revealed}
@@ -2280,7 +2285,10 @@ export default function App() {
                         <FifthColumnCard
                           revealed={state.peek === side}
                           info={{ secret: sideSecret, piece: sidePiece, originalPiece }}
-                          onToggle={() => setState((s) => ({ ...s, peek: s.peek === side ? "none" : side }))}
+                          onToggle={() => {
+                            if (state.peek === side) setState((s) => ({ ...s, peek: "none" }));
+                            else setPeekConfirm(side);
+                          }}
                           onHide={() => setState((s) => ({ ...s, peek: "none" }))}
                           canReveal={!state.winner && !state.pendingPromotion && !sideSecret.revealed && state.turn === side}
                           isSecretRevealed={sideSecret.revealed}
@@ -2318,6 +2326,50 @@ export default function App() {
           </div>
         </div>
       </div>
+      {peekConfirm && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-2 z-50" onClick={() => setPeekConfirm(null)}>
+          <div
+            className="w-full max-w-[340px] rounded-[24px] p-4 shadow-lg"
+            style={{
+              background: "#ffffff",
+              border: `1px solid #000000`,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+              color: TEXT,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[15px] text-center mb-5" style={{ fontWeight: 400, letterSpacing: "0.03em" }}>
+              Before seeing who is your fifth column, make sure that your opponent is not watching
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const side = peekConfirm;
+                  if (side) setState((s) => ({ ...s, peek: side }));
+                  setPeekConfirm(null);
+                }}
+                className="flex-1 py-3 rounded-2xl text-[13px] transition-all duration-150 hover:opacity-80 hover:-translate-y-[1px]"
+                style={{ background: "transparent", color: ACCENT, border: `1px solid ${ACCENT}`, fontWeight: 500 }}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPeekConfirm(null);
+                }}
+                className="flex-1 py-3 rounded-2xl text-[13px] transition-all duration-150 hover:opacity-80 hover:-translate-y-[1px]"
+                style={{ background: "transparent", color: TEXT, border: `1px solid ${BORDER}`, fontWeight: 400 }}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {purgeChoice && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-2 z-50">
