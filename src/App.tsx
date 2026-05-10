@@ -389,6 +389,7 @@ function simulateMoveNoFinalize(state: State, move: Move): State {
     }
 
     next.board[sq] = { ...next.board[sq]!, color: state.turn, moved: true };
+    next.lastMove = { kind: "reveal", to: sq };
     secret.revealed = true;
     next.status = `${state.turn} revealed the fifth column on ${sq}`;
     next.turn = other(state.turn);
@@ -814,6 +815,7 @@ function createCpuWorker() {
           return next;
         }
         next.board[sq] = { ...next.board[sq], color: state.turn, moved: true };
+        next.lastMove = { kind: "reveal", to: sq };
         secret.revealed = true;
         next.status = state.turn + " revealed the fifth column on " + sq;
         next.turn = other(state.turn);
