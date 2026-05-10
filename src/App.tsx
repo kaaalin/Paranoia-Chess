@@ -1967,7 +1967,10 @@ export default function App() {
             </div>
 
             <div className="rounded-3xl p-3 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
-              <div className="text-base font-semibold">Fifth column</div>
+              <div
+                className="text-base font-semibold"
+                style={{ transform: state.mode === "human" && state.turn === other(bottomColor) ? "rotate(180deg)" : "none" }}
+              >Fifth column</div>
               {state.mode === "human" ? (
                 <div className="flex justify-center gap-2">
                   {([state.turn] as Color[]).map((side) => {
