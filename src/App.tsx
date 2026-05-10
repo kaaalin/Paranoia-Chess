@@ -2335,6 +2335,7 @@ export default function App() {
               border: `1px solid #000000`,
               boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
               color: TEXT,
+              transform: isMobile && state.mode === "human" && peekConfirm === other(bottomColor) ? "rotate(180deg)" : "none",
             }}
             onClick={(e) => e.stopPropagation()}
           >
