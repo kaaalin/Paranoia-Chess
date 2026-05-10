@@ -1980,7 +1980,11 @@ export default function App() {
                     };
 
                     return (
-                      <div key={`mobile-wrap-${side}`} className="flex flex-col items-center gap-1">
+                      <div
+                        key={`mobile-wrap-${side}`}
+                        className="flex flex-col items-center gap-1"
+                        style={{ transform: side === other(bottomColor) ? "rotate(180deg)" : "none" }}
+                      >
                         <div className="text-[9px] uppercase tracking-[0.12em]" style={{ color: "#000", opacity: 0.7 }}>{side}</div>
                         <FifthColumnCard
                           revealed={state.peek === side}
