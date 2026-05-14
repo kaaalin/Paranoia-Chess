@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 type Color = "white" | "black";
 type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
 type Difficulty = "Easy" | "Medium" | "Hard";
-type Mode = "human" | "online" | "cpu";
+type Mode = "human" | "cpu";
 type Square = `${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h"}${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
 
 type Piece = {
@@ -45,12 +45,12 @@ type State = {
   status: string;
   winner: Color | null;
   result: string | null;
-  showRules: boolean;
+  showInfo: boolean;
   secrets: { white: SecretInfo; black: SecretInfo };
   peek: "none" | Color;
   pendingPromotion: PendingPromotion | null;
   enPassantTarget: Square | null;
-  lastMove: { from?: Square; to?: Square; kind: Move["kind"]; status?: string } | null;
+  lastMove: { from?: Square; to?: Square; kind: Move["kind"] } | null;
 };
 
 type WorkerRequest = {
@@ -85,103 +85,6 @@ const PAGE_BG = "#f6f1ea";
 const TEXT = "#3a332c";
 const BORDER = "#d8cfc2";
 const LOGO_SRC = "/logo-paranoia.svg";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-
-function normalizeSupabaseRestUrl(url?: string) {
-  if (!url) return "";
-  const clean = url.trim().replace(/\/+$/, "");
-  return clean.endsWith("/rest/v1") ? clean : `${clean}/rest/v1`;
-}
-
-const SUPABASE_REST_URL = normalizeSupabaseRestUrl(SUPABASE_URL);
-const supabaseConfigured = Boolean(SUPABASE_REST_URL && SUPABASE_ANON_KEY);
-
-function supabaseHeaders(extra?: Record<string, string>) {
-  return {
-    apikey: SUPABASE_ANON_KEY || "",
-    Authorization: `Bearer ${SUPABASE_ANON_KEY || ""}`,
-    "Content-Type": "application/json",
-    ...extra,
-  };
-}
-
-async function supabaseInsertGame(row: Partial<GameRow>) {
-  if (!SUPABASE_URL) return { error: { message: "Supabase URL is missing" } };
-  const response = await fetch(`${SUPABASE_REST_URL}/games`, {
-    method: "POST",
-    headers: supabaseHeaders({ Prefer: "return=minimal" }),
-    body: JSON.stringify(row),
-  });
-  if (!response.ok) return { error: { message: await response.text() } };
-  return { error: null };
-}
-
-async function supabaseGetGame(gameId: string) {
-  if (!SUPABASE_URL) return { data: null, error: { message: "Supabase URL is missing" } };
-  const response = await fetch(`${SUPABASE_REST_URL}/games?id=eq.${encodeURIComponent(gameId)}&select=*`, {
-    headers: supabaseHeaders(),
-  });
-  if (!response.ok) return { data: null, error: { message: await response.text() } };
-  const rows = await response.json();
-  return { data: rows?.[0] || null, error: null };
-}
-
-async function supabaseUpdateGame(gameId: string, patch: Partial<GameRow>) {
-  if (!SUPABASE_URL) return { data: null, error: { message: "Supabase URL is missing" } };
-  const response = await fetch(`${SUPABASE_REST_URL}/games?id=eq.${encodeURIComponent(gameId)}`, {
-    method: "PATCH",
-    headers: supabaseHeaders({ Prefer: "return=representation" }),
-    body: JSON.stringify(patch),
-  });
-  if (!response.ok) return { data: null, error: { message: await response.text() } };
-  const rows = await response.json();
-  return { data: rows?.[0] || null, error: null };
-}
-
-type GameRow = {
-  id: string;
-  status: "waiting" | "active" | "finished";
-  white_player_id: string | null;
-  black_player_id: string | null;
-  board_json: Record<Square, Piece | null>;
-  turn: Color;
-  quietus_json: { white: Piece[]; black: Piece[] };
-  secrets_json: { white: SecretInfo; black: SecretInfo };
-  last_move_json: State["lastMove"];
-  result: string | null;
-  created_at?: string;
-  updated_at?: string;
-};
-
-function onlineSnapshotKey(game: Partial<GameRow>) {
-  return JSON.stringify({
-    status: game.status,
-    white_player_id: game.white_player_id,
-    black_player_id: game.black_player_id,
-    board_json: game.board_json,
-    turn: game.turn,
-    quietus_json: game.quietus_json,
-    secrets_json: game.secrets_json,
-    last_move_json: game.last_move_json,
-    result: game.result,
-  });
-}
-
-function sameOnlinePosition(state: State, game: GameRow) {
-  // For online polling, `last_move_json` may differ only because its embedded
-  // status/message was saved in the database. That must NOT count as a new
-  // board position, otherwise the polling tick immediately clears local UI
-  // selection and restores the old message.
-  return (
-    JSON.stringify(state.board) === JSON.stringify(game.board_json) &&
-    state.turn === game.turn &&
-    JSON.stringify(state.quietus) === JSON.stringify(game.quietus_json) &&
-    JSON.stringify(state.secrets) === JSON.stringify(game.secrets_json) &&
-    state.result === game.result
-  );
-}
 
 const other = (c: Color): Color => (c === "white" ? "black" : "white");
 const keyOf = (f: number, r: number) => `${FILES[f]}${r}` as Square;
@@ -282,7 +185,7 @@ function initialState(): State {
     status: "White to move",
     winner: null,
     result: null,
-    showRules: false,
+    showInfo: false,
     secrets: createSecrets(board),
     peek: "none",
     pendingPromotion: null,
@@ -1644,11 +1547,8 @@ export default function App() {
   const [state, setState] = useState<State>(initialState);
   const [purgeChoice, setPurgeChoice] = useState<{ from: Square; to: Square; move: Move } | null>(null);
   const [peekConfirm, setPeekConfirm] = useState<Color | null>(null);
-  const [onlineGame, setOnlineGame] = useState<{ gameId: string; playerId: string; playerColor: Color; inviteLink: string; status: "waiting" | "active" } | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const pendingRequestIdRef = useRef(0);
-  const savingOnlineRef = useRef(false);
-  const lastOnlineSnapshotRef = useRef("");
 
   useEffect(() => {
     runSelfTests();
@@ -1722,212 +1622,12 @@ export default function App() {
     pendingRequestIdRef.current += 1;
     setPurgeChoice(null);
     setPeekConfirm(null);
-    setOnlineGame(null);
-    lastOnlineSnapshotRef.current = "";
-    if (typeof window !== "undefined" && (window.location.pathname.startsWith("/game/") || window.location.search.includes("game="))) {
-      window.history.pushState({}, "", "/");
-    }
     setState(initialState());
   }
-
-  function applyGameRowToState(game: GameRow, fallbackStatus?: string, playerColor?: Color) {
-    setState((s) => {
-      const samePosition = sameOnlinePosition(s, game);
-      const sameBoard = JSON.stringify(s.board) === JSON.stringify(game.board_json);
-      const preserveLocalOnlineUi = sameBoard && !!s.selected;
-      const nextPlayerColor = playerColor || onlineGame?.playerColor;
-
-      return {
-        ...s,
-        mode: "online",
-        flipped: nextPlayerColor ? nextPlayerColor === "black" : s.flipped,
-        board: game.board_json,
-        turn: game.turn,
-        quietus: game.quietus_json,
-        secrets: game.secrets_json,
-        lastMove: game.last_move_json || null,
-        result: game.result,
-        winner: null,
-        pendingPromotion: null,
-        selected: samePosition || preserveLocalOnlineUi ? s.selected : null,
-        legalTargets: samePosition || preserveLocalOnlineUi ? s.legalTargets : [],
-        status: fallbackStatus || (samePosition || preserveLocalOnlineUi ? s.status : game.result || (game.last_move_json as any)?.status || s.status || "White to move"),
-      };
-    });
-  }
-
-  async function createOnlineGame() {
-    if (!supabaseConfigured) {
-      setState((s) => ({ ...s, mode: "online", status: "Supabase is not configured" }));
-      return;
-    }
-
-    const gameId = Math.random().toString(36).slice(2, 8).toUpperCase();
-    const playerId = `player_${Math.random().toString(36).slice(2, 10)}`;
-    const start = initialState();
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-    const inviteLink = `${baseUrl}/?game=${gameId}`;
-
-    const startRow: Partial<GameRow> = {
-      id: gameId,
-      status: "waiting",
-      white_player_id: playerId,
-      black_player_id: null,
-      board_json: start.board,
-      turn: start.turn,
-      quietus_json: start.quietus,
-      secrets_json: start.secrets,
-      last_move_json: start.lastMove,
-      result: start.result,
-    };
-
-    const { error } = await supabaseInsertGame(startRow);
-
-    if (error) {
-      setState((s) => ({ ...s, mode: "online", status: `Could not create online game: ${error.message}` }));
-      return;
-    }
-
-    lastOnlineSnapshotRef.current = onlineSnapshotKey(startRow);
-    setOnlineGame({ gameId, playerId, playerColor: "white", inviteLink, status: "waiting" });
-    setState({ ...start, mode: "online", status: `Created online game ${gameId}` });
-
-    if (typeof window !== "undefined") {
-      window.history.pushState({}, "", `/?game=${gameId}`);
-    }
-  }
-
-  async function joinOnlineGame(gameId: string) {
-    if (!supabaseConfigured) {
-      setState((s) => ({ ...s, mode: "online", status: "Supabase is not configured" }));
-      return;
-    }
-
-    const cleanGameId = gameId.trim().toUpperCase();
-    const playerId = `player_${Math.random().toString(36).slice(2, 10)}`;
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-
-    const { data: existingGame, error } = await supabaseGetGame(cleanGameId);
-
-    if (error || !existingGame) {
-      setState((s) => ({ ...s, mode: "online", status: "Online game not found" }));
-      return;
-    }
-
-    let game = existingGame as GameRow;
-    let joinedPlayerId = playerId;
-    let joinedColor: Color = "white";
-
-    if (!game.black_player_id && game.white_player_id !== playerId) {
-      joinedColor = "black";
-      const { data: joinedGame, error: joinError } = await supabaseUpdateGame(cleanGameId, {
-        black_player_id: playerId,
-        status: "active",
-        updated_at: new Date().toISOString(),
-      });
-
-      if (!joinError && joinedGame) game = joinedGame as GameRow;
-    } else if (game.white_player_id === playerId) {
-      joinedColor = "white";
-    } else if (game.black_player_id === playerId) {
-      joinedColor = "black";
-    } else if (game.black_player_id) {
-      joinedColor = "black";
-    }
-
-    lastOnlineSnapshotRef.current = onlineSnapshotKey(game);
-    setOnlineGame({
-      gameId: cleanGameId,
-      playerId: joinedPlayerId,
-      playerColor: joinedColor,
-      inviteLink: `${baseUrl}/?game=${cleanGameId}`,
-      status: game.status === "finished" ? "active" : game.status,
-    });
-
-    applyGameRowToState(game, `Joined online game ${cleanGameId}`, joinedColor);
-  }
-
-  async function saveOnlineState(next: State) {
-    if (!supabaseConfigured || !onlineGame) return;
-
-    savingOnlineRef.current = true;
-
-    const { data, error } = await supabaseUpdateGame(onlineGame.gameId, {
-      board_json: next.board,
-      turn: next.turn,
-      quietus_json: next.quietus,
-      secrets_json: next.secrets,
-      last_move_json: next.lastMove ? { ...next.lastMove, status: next.status } : null,
-      result: next.result,
-      status: next.result ? "finished" : "active",
-      updated_at: new Date().toISOString(),
-    });
-
-    if (error) {
-      setState((s) => ({ ...s, status: `Could not send online move: ${error.message}` }));
-      savingOnlineRef.current = false;
-      return;
-    }
-
-    if (data) {
-      lastOnlineSnapshotRef.current = onlineSnapshotKey(data as GameRow);
-      applyGameRowToState(data as GameRow);
-    }
-
-    savingOnlineRef.current = false;
-  }
-
-  async function applyOnlineMove(move: Move) {
-    const next = applyMove(state, move);
-    setState(next);
-    if (!next.pendingPromotion) await saveOnlineState(next);
-  }
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const pathMatch = window.location.pathname.match(/^\/game\/([^/]+)$/);
-    const queryGameId = new URLSearchParams(window.location.search).get("game");
-    const gameId = pathMatch?.[1] || queryGameId;
-    if (!gameId) return;
-    joinOnlineGame(gameId);
-  }, []);
-
-  useEffect(() => {
-    if (!supabaseConfigured || !onlineGame?.gameId) return;
-
-    let cancelled = false;
-
-    async function pollGame() {
-      if (savingOnlineRef.current) return;
-      const { data: game } = await supabaseGetGame(onlineGame!.gameId);
-      if (cancelled || !game) return;
-      const row = game as GameRow;
-      const remoteSnapshot = onlineSnapshotKey(row);
-      if (remoteSnapshot === lastOnlineSnapshotRef.current) return;
-      lastOnlineSnapshotRef.current = remoteSnapshot;
-
-      setOnlineGame((current) => current ? {
-        ...current,
-        status: row.status === "finished" ? "active" : row.status,
-      } : current);
-      applyGameRowToState(row);
-    }
-
-    void pollGame();
-    const interval = window.setInterval(() => {
-      void pollGame();
-    }, 1200);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [onlineGame?.gameId]);
 
   function handleClick(sq: Square) {
     if (state.winner || state.pendingPromotion || purgeChoice) return;
     if (state.mode === "cpu" && state.turn === state.cpuColor) return;
-    if (state.mode === "online" && onlineGame && state.turn !== onlineGame.playerColor) return;
 
     if (!state.selected) {
       if (state.board[sq]?.color === state.turn) {
@@ -1959,8 +1659,7 @@ export default function App() {
 
     if (normalMove) {
       pendingRequestIdRef.current += 1;
-      if (state.mode === "online") void applyOnlineMove(normalMove);
-      else setState((s) => applyMove(s, normalMove));
+      setState((s) => applyMove(s, normalMove));
       return;
     }
 
@@ -1988,7 +1687,7 @@ export default function App() {
   }
 
   function handleDragStart(e: React.DragEvent<HTMLButtonElement>, sq: Square) {
-    if (state.winner || state.pendingPromotion || (state.mode === "cpu" && state.turn === state.cpuColor) || (state.mode === "online" && onlineGame && state.turn !== onlineGame.playerColor)) {
+    if (state.winner || state.pendingPromotion || (state.mode === "cpu" && state.turn === state.cpuColor)) {
       e.preventDefault();
       return;
     }
@@ -2007,7 +1706,7 @@ export default function App() {
 
   function handleDrop(e: React.DragEvent<HTMLButtonElement>, sq: Square) {
     e.preventDefault();
-    if (state.winner || state.pendingPromotion || purgeChoice || (state.mode === "cpu" && state.turn === state.cpuColor) || (state.mode === "online" && onlineGame && state.turn !== onlineGame.playerColor)) return;
+    if (state.winner || state.pendingPromotion || purgeChoice || (state.mode === "cpu" && state.turn === state.cpuColor)) return;
 
     const from = e.dataTransfer.getData("text/plain") as Square;
     if (!from) return;
@@ -2061,8 +1760,7 @@ export default function App() {
     const purgeMove = moves.find((m) => m.kind === "selfCapture");
     if (purgeMove && state.board[sq]?.color === state.turn) {
       pendingRequestIdRef.current += 1;
-      if (state.mode === "online") void applyOnlineMove(purgeMove);
-      else setState((s) => applyMove(s, purgeMove));
+      setState((s) => applyMove(s, purgeMove));
       return;
     }
 
@@ -2070,8 +1768,7 @@ export default function App() {
     if (!chosenMove) return;
 
     pendingRequestIdRef.current += 1;
-    if (state.mode === "online") void applyOnlineMove(chosenMove);
-    else setState((s) => applyMove(s, chosenMove));
+    setState((s) => applyMove(s, chosenMove));
   }
 
   function handleDragOver(e: React.DragEvent<HTMLButtonElement>) {
@@ -2081,45 +1778,32 @@ export default function App() {
   function handleReveal() {
     if (!canReveal || purgeChoice) return;
     if (state.mode === "cpu" && state.turn === state.cpuColor) return;
-    if (state.mode === "online" && onlineGame && state.turn !== onlineGame.playerColor) return;
     pendingRequestIdRef.current += 1;
-    const revealMove: Move = { from: "a1", kind: "reveal" };
-    if (state.mode === "online") void applyOnlineMove(revealMove);
-    else setState((s) => applyMove(s, revealMove));
-  }
-
-  function buildPromotionState(current: State, type: Exclude<PieceType, "K" | "P">): State {
-    if (!current.pendingPromotion) return current;
-
-    const next = cloneState(current);
-    const square = next.pendingPromotion.square;
-    const piece = next.board[square];
-    if (!piece) return { ...next, pendingPromotion: null };
-
-    next.board[square] = {
-      ...piece,
-      type,
-      promotedFromPawn: true,
-      moved: true,
-    };
-    next.pendingPromotion = null;
-    next.turn = other(current.turn);
-    next.status = `${current.turn} promoted on ${square}`;
-    return finalizeState(next);
+    setState((s) => applyMove(s, { from: "a1", kind: "reveal" }));
   }
 
   function handlePromotion(type: Exclude<PieceType, "K" | "P">) {
     if (!state.pendingPromotion || purgeChoice) return;
     pendingRequestIdRef.current += 1;
+    setState((current) => {
+      if (!current.pendingPromotion) return current;
 
-    if (state.mode === "online") {
-      const next = buildPromotionState(state, type);
-      setState(next);
-      void saveOnlineState(next);
-      return;
-    }
+      const next = cloneState(current);
+      const square = next.pendingPromotion.square;
+      const piece = next.board[square];
+      if (!piece) return { ...next, pendingPromotion: null };
 
-    setState((current) => buildPromotionState(current, type));
+      next.board[square] = {
+        ...piece,
+        type,
+        promotedFromPawn: true,
+        moved: true,
+      };
+      next.pendingPromotion = null;
+      next.turn = other(current.turn);
+      next.status = `${current.turn} promoted on ${square}`;
+      return finalizeState(next);
+    });
   }
 
   const thinking = state.mode === "cpu" && state.turn === state.cpuColor && !state.pendingPromotion && !state.winner && !purgeChoice;
@@ -2241,27 +1925,26 @@ export default function App() {
                 <CustomDropdown<Mode>
                   compact
                   value={state.mode}
-                  widthLabels={["With Human", "Online Human", "With Computer"]}
+                  widthLabels={["With Human", "With Computer"]}
                   options={[
                     { value: "human", label: "With Human" },
-                    { value: "online", label: "Online Human" },
                     { value: "cpu", label: "With Computer" },
                   ]}
                   onChange={(mode) => setState((s) => ({ ...s, mode }))}
                 />
               </label>
               <label className="flex flex-col gap-0.5 text-[13px]">
-                <span>{state.mode === "human" ? "Bottom color" : state.mode === "online" ? "You play" : "Computer plays"}</span>
+                <span>{state.mode === "human" ? "Bottom color" : "Computer plays"}</span>
                 <CustomDropdown<Color>
                   compact
-                  value={state.mode === "human" || state.mode === "online" ? bottomColor : state.cpuColor}
+                  value={state.mode === "human" ? bottomColor : state.cpuColor}
                   widthLabels={["White", "Black"]}
                   options={[
                     { value: "white", label: "White" },
                     { value: "black", label: "Black" },
                   ]}
                   onChange={(color) => {
-                    if (state.mode === "human" || state.mode === "online") setBottomColor(color);
+                    if (state.mode === "human") setBottomColor(color);
                     else setState((s) => ({ ...s, cpuColor: color }));
                   }}
                 />
@@ -2270,14 +1953,12 @@ export default function App() {
                 <span>Level</span>
                 <CustomDropdown<string>
                   compact
-                  disabled={state.mode !== "cpu"}
-                  value={state.mode === "human" ? "Human" : state.mode === "online" ? "Online" : state.difficulty}
-                  widthLabels={["Human", "Online", "Easy", "Medium", "Hard"]}
+                  disabled={state.mode === "human"}
+                  value={state.mode === "human" ? "Human" : state.difficulty}
+                  widthLabels={["Human", "Easy", "Medium", "Hard"]}
                   options={state.mode === "human"
                     ? [{ value: "Human", label: "Human" }]
-                    : state.mode === "online"
-                      ? [{ value: "Online", label: "Online" }]
-                      : [
+                    : [
                         { value: "Easy", label: "Easy" },
                         { value: "Medium", label: "Medium" },
                         { value: "Hard", label: "Hard" },
@@ -2285,26 +1966,6 @@ export default function App() {
                   onChange={(difficulty) => setState((s) => ({ ...s, difficulty: difficulty as Difficulty }))}
                 />
               </label>
-              {state.mode === "online" && (
-                <div className="mt-2 rounded-2xl p-2 text-[12px]" style={{ background: "#ede7df", border: `1px solid ${BORDER}`, color: TEXT }}>
-                  {!onlineGame ? (
-                    <button
-                      type="button"
-                      onClick={createOnlineGame}
-                      className="w-full py-2 rounded-2xl transition-all duration-150 hover:opacity-80"
-                      style={{ background: "#ffffff", color: TEXT, border: `1px solid ${BORDER}` }}
-                    >
-                      Create invite link
-                    </button>
-                  ) : (
-                    <div className="space-y-1">
-                      <div>Status: {onlineGame.status === "waiting" ? "waiting for opponent" : "joined room"}</div>
-                      <div>Game: {onlineGame.gameId}</div>
-                      <div className="break-all opacity-80">{onlineGame.inviteLink}</div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="rounded-3xl p-3 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
@@ -2456,31 +2117,30 @@ export default function App() {
             </div>
 
             <div className="rounded-3xl p-4 border space-y-3" style={{ background: PANEL, borderColor: BORDER }}>
-              <div className="text-lg font-semibold">{state.mode === "online" ? "Online opponent" : "Computer opponent"}</div>
+              <div className="text-lg font-semibold">Computer opponent</div>
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Mode</span>
                 <CustomDropdown<Mode>
                   value={state.mode}
-                  widthLabels={["Human vs Human", "Online Human", "Human vs Computer"]}
+                  widthLabels={["Human vs Human", "Human vs Computer"]}
                   options={[
                     { value: "human", label: "Human vs Human" },
-                    { value: "online", label: "Online Human" },
                     { value: "cpu", label: "Human vs Computer" },
                   ]}
                   onChange={(mode) => setState((s) => ({ ...s, mode }))}
                 />
               </label>
               <label className="flex items-center justify-between gap-3 text-sm">
-                <span>{state.mode === "human" ? "Bottom color" : state.mode === "online" ? "You play" : "Computer plays"}</span>
+                <span>{state.mode === "human" ? "Bottom color" : "Computer plays"}</span>
                 <CustomDropdown<Color>
-                  value={state.mode === "human" || state.mode === "online" ? bottomColor : state.cpuColor}
+                  value={state.mode === "human" ? bottomColor : state.cpuColor}
                   widthLabels={["White", "Black"]}
                   options={[
                     { value: "white", label: "White" },
                     { value: "black", label: "Black" },
                   ]}
                   onChange={(color) => {
-                    if (state.mode === "human" || state.mode === "online") setBottomColor(color);
+                    if (state.mode === "human") setBottomColor(color);
                     else setState((s) => ({ ...s, cpuColor: color }));
                   }}
                 />
@@ -2488,14 +2148,12 @@ export default function App() {
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>Level</span>
                 <CustomDropdown<string>
-                  disabled={state.mode !== "cpu"}
-                  value={state.mode === "human" ? "Human" : state.mode === "online" ? "Online" : state.difficulty}
-                  widthLabels={["Human", "Online", "Easy", "Medium", "Hard"]}
+                  disabled={state.mode === "human"}
+                  value={state.mode === "human" ? "Human" : state.difficulty}
+                  widthLabels={["Human", "Easy", "Medium", "Hard"]}
                   options={state.mode === "human"
                     ? [{ value: "Human", label: "Human" }]
-                    : state.mode === "online"
-                      ? [{ value: "Online", label: "Online" }]
-                      : [
+                    : [
                         { value: "Easy", label: "Easy" },
                         { value: "Medium", label: "Medium" },
                         { value: "Hard", label: "Hard" },
@@ -2503,26 +2161,6 @@ export default function App() {
                   onChange={(difficulty) => setState((s) => ({ ...s, difficulty: difficulty as Difficulty }))}
                 />
               </label>
-              {state.mode === "online" && (
-                <div className="mt-2 rounded-2xl p-3 text-sm" style={{ background: "#ede7df", border: `1px solid ${BORDER}`, color: TEXT }}>
-                  {!onlineGame ? (
-                    <button
-                      type="button"
-                      onClick={createOnlineGame}
-                      className="w-full py-2 rounded-2xl transition-all duration-150 hover:opacity-80"
-                      style={{ background: "#ffffff", color: TEXT, border: `1px solid ${BORDER}` }}
-                    >
-                      Create invite link
-                    </button>
-                  ) : (
-                    <div className="space-y-1">
-                      <div>Status: {onlineGame.status === "waiting" ? "waiting for opponent" : "joined room"}</div>
-                      <div>Game: {onlineGame.gameId}</div>
-                      <div className="break-all opacity-80">{onlineGame.inviteLink}</div>
-                    </div>
-                  )}
-                </div>
-              )}
               {thinking && (
                 <div className="text-xs" style={{ color: ACCENT, letterSpacing: "0.22em" }}>
                   t h i n k i n g ...
@@ -2763,8 +2401,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     pendingRequestIdRef.current += 1;
-                    if (state.mode === "online") void applyOnlineMove(purgeChoice.move);
-                    else setState((s) => applyMove(s, purgeChoice.move));
+                    setState((s) => applyMove(s, purgeChoice.move));
                     setPurgeChoice(null);
                   }}
                   className="flex-1 py-3 rounded-2xl text-[13px] transition-all duration-150 hover:opacity-80 hover:-translate-y-[1px]"
