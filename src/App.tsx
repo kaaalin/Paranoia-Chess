@@ -170,12 +170,15 @@ function onlineSnapshotKey(game: Partial<GameRow>) {
 }
 
 function sameOnlinePosition(state: State, game: GameRow) {
+  // For online polling, `last_move_json` may differ only because its embedded
+  // status/message was saved in the database. That must NOT count as a new
+  // board position, otherwise the polling tick immediately clears local UI
+  // selection and restores the old message.
   return (
     JSON.stringify(state.board) === JSON.stringify(game.board_json) &&
     state.turn === game.turn &&
     JSON.stringify(state.quietus) === JSON.stringify(game.quietus_json) &&
     JSON.stringify(state.secrets) === JSON.stringify(game.secrets_json) &&
-    JSON.stringify(state.lastMove) === JSON.stringify(game.last_move_json || null) &&
     state.result === game.result
   );
 }
@@ -1730,6 +1733,8 @@ export default function App() {
   function applyGameRowToState(game: GameRow, fallbackStatus?: string, playerColor?: Color) {
     setState((s) => {
       const samePosition = sameOnlinePosition(s, game);
+      const sameBoard = JSON.stringify(s.board) === JSON.stringify(game.board_json);
+      const preserveLocalOnlineUi = sameBoard && !!s.selected;
       const nextPlayerColor = playerColor || onlineGame?.playerColor;
 
       return {
@@ -1744,8 +1749,9 @@ export default function App() {
         result: game.result,
         winner: null,
         pendingPromotion: null,
-        selected: samePosition ? s.selected : null,
-        status: fallbackStatus || (samePosition ? s.status : game.result || (game.last_move_json as any)?.status || s.status || "White to move"),
+        selected: samePosition || preserveLocalOnlineUi ? s.selected : null,
+        legalTargets: samePosition || preserveLocalOnlineUi ? s.legalTargets : [],
+        status: fallbackStatus || (samePosition || preserveLocalOnlineUi ? s.status : game.result || (game.last_move_json as any)?.status || s.status || "White to move"),
       };
     });
   }
