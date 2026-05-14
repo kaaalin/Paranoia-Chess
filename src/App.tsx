@@ -166,15 +166,19 @@ function onlineSnapshotKey(game: Partial<GameRow>) {
     secrets_json: game.secrets_json,
     last_move_json: game.last_move_json,
     result: game.result,
-    updated_at: game.updated_at,
   });
 }
-  secrets_json: { white: SecretInfo; black: SecretInfo };
-  last_move_json: State["lastMove"];
-  result: string | null;
-  created_at?: string;
-  updated_at?: string;
-};
+
+function sameOnlinePosition(state: State, game: GameRow) {
+  return (
+    JSON.stringify(state.board) === JSON.stringify(game.board_json) &&
+    state.turn === game.turn &&
+    JSON.stringify(state.quietus) === JSON.stringify(game.quietus_json) &&
+    JSON.stringify(state.secrets) === JSON.stringify(game.secrets_json) &&
+    JSON.stringify(state.lastMove) === JSON.stringify(game.last_move_json || null) &&
+    state.result === game.result
+  );
+}
 
 const other = (c: Color): Color => (c === "white" ? "black" : "white");
 const keyOf = (f: number, r: number) => `${FILES[f]}${r}` as Square;
@@ -275,7 +279,7 @@ function initialState(): State {
     status: "White to move",
     winner: null,
     result: null,
-    showInfo: false,
+    showRules: false,
     secrets: createSecrets(board),
     peek: "none",
     pendingPromotion: null,
@@ -1724,21 +1728,26 @@ export default function App() {
   }
 
   function applyGameRowToState(game: GameRow, fallbackStatus?: string, playerColor?: Color) {
-    setState((s) => ({
-      ...s,
-      mode: "online",
-      flipped: playerColor ? playerColor === "black" : onlineGame?.playerColor === "black" ? true : s.flipped,
-      board: game.board_json,
-      turn: game.turn,
-      quietus: game.quietus_json,
-      secrets: game.secrets_json,
-      lastMove: game.last_move_json || null,
-      result: game.result,
-      winner: null,
-      pendingPromotion: null,
-      selected: null,
-      status: fallbackStatus || game.result || (game.last_move_json as any)?.status || s.status || "White to move",
-    }));
+    setState((s) => {
+      const samePosition = sameOnlinePosition(s, game);
+      const nextPlayerColor = playerColor || onlineGame?.playerColor;
+
+      return {
+        ...s,
+        mode: "online",
+        flipped: nextPlayerColor ? nextPlayerColor === "black" : s.flipped,
+        board: game.board_json,
+        turn: game.turn,
+        quietus: game.quietus_json,
+        secrets: game.secrets_json,
+        lastMove: game.last_move_json || null,
+        result: game.result,
+        winner: null,
+        pendingPromotion: null,
+        selected: samePosition ? s.selected : null,
+        status: fallbackStatus || (samePosition ? s.status : game.result || (game.last_move_json as any)?.status || s.status || "White to move"),
+      };
+    });
   }
 
   async function createOnlineGame() {
@@ -1842,7 +1851,7 @@ export default function App() {
       turn: next.turn,
       quietus_json: next.quietus,
       secrets_json: next.secrets,
-      last_move_json: next.lastMove ? { ...next.lastMove, status: next.status } : next.lastMove,
+      last_move_json: next.lastMove ? { ...next.lastMove, status: next.status } : null,
       result: next.result,
       status: next.result ? "finished" : "active",
       updated_at: new Date().toISOString(),
